@@ -9,6 +9,21 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Session, User } from "@supabase/supabase-js";
 import { ShoppingCart } from "lucide-react";
+import { z } from "zod";
+
+const signupSchema = z.object({
+  nome: z.string()
+    .min(2, "Nome deve ter no mínimo 2 caracteres")
+    .max(100, "Nome deve ter no máximo 100 caracteres")
+    .regex(/^[a-zA-ZÀ-ÿ\s]+$/, "Nome deve conter apenas letras"),
+  email: z.string()
+    .email("Email inválido")
+    .max(255, "Email deve ter no máximo 255 caracteres"),
+  password: z.string()
+    .min(8, "Senha deve ter no mínimo 8 caracteres")
+    .regex(/[A-Z]/, "Senha deve conter pelo menos uma letra maiúscula")
+    .regex(/[0-9]/, "Senha deve conter pelo menos um número"),
+});
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -74,30 +89,56 @@ export default function Auth() {
     e.preventDefault();
     setLoading(true);
 
-    const redirectUrl = `${window.location.origin}/`;
-
-    const { error } = await supabase.auth.signUp({
-      email: signupEmail,
-      password: signupPassword,
-      options: {
-        emailRedirectTo: redirectUrl,
-        data: {
-          nome: signupNome,
-          role: "caixa",
-        },
-      },
-    });
-
-    if (error) {
-      toast({
-        title: "Erro ao criar conta",
-        description: error.message,
-        variant: "destructive",
+    try {
+      // Validar dados do formulário
+      const validationResult = signupSchema.safeParse({
+        nome: signupNome,
+        email: signupEmail,
+        password: signupPassword,
       });
-    } else {
+
+      if (!validationResult.success) {
+        const firstError = validationResult.error.errors[0];
+        toast({
+          title: "Dados inválidos",
+          description: firstError.message,
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
+      const redirectUrl = `${window.location.origin}/`;
+
+      const { error } = await supabase.auth.signUp({
+        email: signupEmail,
+        password: signupPassword,
+        options: {
+          emailRedirectTo: redirectUrl,
+          data: {
+            nome: signupNome,
+            role: "caixa",
+          },
+        },
+      });
+
+      if (error) {
+        toast({
+          title: "Erro ao criar conta",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Conta criada com sucesso!",
+          description: "Você já pode fazer login.",
+        });
+      }
+    } catch (error) {
       toast({
-        title: "Conta criada com sucesso!",
-        description: "Você já pode fazer login.",
+        title: "Erro inesperado",
+        description: "Ocorreu um erro ao processar o cadastro",
+        variant: "destructive",
       });
     }
 

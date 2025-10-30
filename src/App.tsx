@@ -11,6 +11,9 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import PDV from "./pages/PDV";
 import Produtos from "./pages/Produtos";
+import Clientes from "./pages/Clientes";
+import Fornecedores from "./pages/Fornecedores";
+import Financeiro from "./pages/Financeiro";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -41,9 +44,9 @@ const App = () => (
                           <Route path="/dashboard" element={<Dashboard />} />
                           <Route path="/pdv" element={<PDV />} />
                           <Route path="/produtos" element={<Produtos />} />
-                          <Route path="/clientes" element={<div className="text-center py-12"><h2 className="text-2xl font-bold">Clientes</h2><p className="text-muted-foreground">Em desenvolvimento</p></div>} />
-                          <Route path="/fornecedores" element={<div className="text-center py-12"><h2 className="text-2xl font-bold">Fornecedores</h2><p className="text-muted-foreground">Em desenvolvimento</p></div>} />
-                          <Route path="/financeiro" element={<div className="text-center py-12"><h2 className="text-2xl font-bold">Financeiro</h2><p className="text-muted-foreground">Em desenvolvimento</p></div>} />
+                          <Route path="/clientes" element={<Clientes />} />
+                          <Route path="/fornecedores" element={<Fornecedores />} />
+                          <Route path="/financeiro" element={<Financeiro />} />
                           <Route path="*" element={<NotFound />} />
                         </Routes>
                       </div>
