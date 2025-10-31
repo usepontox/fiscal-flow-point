@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { User, Lock, Save } from "lucide-react";
+import { User, Lock, Save, Building } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function Configuracoes() {
@@ -20,9 +20,20 @@ export default function Configuracoes() {
     nova: "",
     confirmar: "",
   });
+  const [empresa, setEmpresa] = useState({
+    nome_empresa: "",
+    cnpj: "",
+    endereco: "",
+    cidade: "",
+    estado: "",
+    cep: "",
+    telefone: "",
+    email: "",
+  });
 
   useEffect(() => {
     loadProfile();
+    loadEmpresa();
   }, []);
 
   const loadProfile = async () => {
@@ -40,6 +51,18 @@ export default function Configuracoes() {
         nome: data.nome || "",
         email: data.email || "",
       });
+    }
+  };
+
+  const loadEmpresa = async () => {
+    const { data } = await supabase
+      .from("configuracoes_empresa")
+      .select("*")
+      .limit(1)
+      .single();
+
+    if (data) {
+      setEmpresa(data);
     }
   };
 
@@ -113,11 +136,50 @@ export default function Configuracoes() {
     }
   };
 
+  const handleSaveEmpresa = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const { data: existing } = await supabase
+        .from("configuracoes_empresa")
+        .select("id")
+        .limit(1)
+        .single();
+
+      let error;
+      if (existing) {
+        const result = await supabase
+          .from("configuracoes_empresa")
+          .update(empresa)
+          .eq("id", existing.id);
+        error = result.error;
+      } else {
+        const result = await supabase
+          .from("configuracoes_empresa")
+          .insert([empresa]);
+        error = result.error;
+      }
+
+      if (error) throw error;
+
+      toast({ title: "Dados da empresa salvos com sucesso!" });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao salvar dados da empresa",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Configurações</h1>
-        <p className="text-muted-foreground">Gerencie suas preferências e dados pessoais</p>
+        <p className="text-muted-foreground">Gerencie suas preferências e dados do sistema</p>
       </div>
 
       <Tabs defaultValue="perfil" className="w-full">
@@ -129,6 +191,10 @@ export default function Configuracoes() {
           <TabsTrigger value="seguranca">
             <Lock className="h-4 w-4 mr-2" />
             Segurança
+          </TabsTrigger>
+          <TabsTrigger value="empresa">
+            <Building className="h-4 w-4 mr-2" />
+            Empresa
           </TabsTrigger>
         </TabsList>
 
@@ -226,6 +292,94 @@ export default function Configuracoes() {
                 <Button type="submit" disabled={loading}>
                   <Lock className="h-4 w-4 mr-2" />
                   {loading ? "Alterando..." : "Alterar Senha"}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="empresa">
+          <Card>
+            <CardHeader>
+              <CardTitle>Dados da Empresa</CardTitle>
+              <CardDescription>
+                Configure as informações da sua empresa
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSaveEmpresa} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2 col-span-2">
+                    <Label htmlFor="nome_empresa">Nome da Empresa *</Label>
+                    <Input
+                      id="nome_empresa"
+                      value={empresa.nome_empresa}
+                      onChange={(e) => setEmpresa({ ...empresa, nome_empresa: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="cnpj">CNPJ</Label>
+                    <Input
+                      id="cnpj"
+                      value={empresa.cnpj}
+                      onChange={(e) => setEmpresa({ ...empresa, cnpj: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="telefone_empresa">Telefone</Label>
+                    <Input
+                      id="telefone_empresa"
+                      value={empresa.telefone}
+                      onChange={(e) => setEmpresa({ ...empresa, telefone: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2 col-span-2">
+                    <Label htmlFor="email_empresa">E-mail</Label>
+                    <Input
+                      id="email_empresa"
+                      type="email"
+                      value={empresa.email}
+                      onChange={(e) => setEmpresa({ ...empresa, email: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2 col-span-2">
+                    <Label htmlFor="endereco_empresa">Endereço</Label>
+                    <Input
+                      id="endereco_empresa"
+                      value={empresa.endereco}
+                      onChange={(e) => setEmpresa({ ...empresa, endereco: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="cidade_empresa">Cidade</Label>
+                    <Input
+                      id="cidade_empresa"
+                      value={empresa.cidade}
+                      onChange={(e) => setEmpresa({ ...empresa, cidade: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="estado_empresa">Estado</Label>
+                    <Input
+                      id="estado_empresa"
+                      value={empresa.estado}
+                      onChange={(e) => setEmpresa({ ...empresa, estado: e.target.value })}
+                      maxLength={2}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="cep_empresa">CEP</Label>
+                    <Input
+                      id="cep_empresa"
+                      value={empresa.cep}
+                      onChange={(e) => setEmpresa({ ...empresa, cep: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <Button type="submit" disabled={loading}>
+                  <Save className="h-4 w-4 mr-2" />
+                  {loading ? "Salvando..." : "Salvar Dados da Empresa"}
                 </Button>
               </form>
             </CardContent>

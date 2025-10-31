@@ -7,7 +7,9 @@ import {
   DollarSign,
   LogOut,
   Settings,
-  Receipt
+  Receipt,
+  FileText,
+  ShoppingBag
 } from "lucide-react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -32,9 +34,11 @@ const menuItems = [
   { title: "PDV / Caixa", url: "/pdv", icon: ShoppingCart },
   { title: "Vendas", url: "/vendas", icon: Receipt },
   { title: "Produtos", url: "/produtos", icon: Package },
+  { title: "Compras", url: "/compras", icon: ShoppingBag },
   { title: "Clientes", url: "/clientes", icon: Users },
   { title: "Fornecedores", url: "/fornecedores", icon: Truck },
   { title: "Financeiro", url: "/financeiro", icon: DollarSign },
+  { title: "Relatórios", url: "/relatorios", icon: FileText },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
 ];
 

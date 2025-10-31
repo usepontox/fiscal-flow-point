@@ -116,6 +116,140 @@ export type Database = {
         }
         Relationships: []
       }
+      compras: {
+        Row: {
+          created_at: string | null
+          data_compra: string | null
+          fornecedor_id: string | null
+          id: string
+          numero_nota: string | null
+          observacoes: string | null
+          status: string
+          usuario_id: string
+          valor_total: number
+        }
+        Insert: {
+          created_at?: string | null
+          data_compra?: string | null
+          fornecedor_id?: string | null
+          id?: string
+          numero_nota?: string | null
+          observacoes?: string | null
+          status?: string
+          usuario_id: string
+          valor_total?: number
+        }
+        Update: {
+          created_at?: string | null
+          data_compra?: string | null
+          fornecedor_id?: string | null
+          id?: string
+          numero_nota?: string | null
+          observacoes?: string | null
+          status?: string
+          usuario_id?: string
+          valor_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compras_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      compras_itens: {
+        Row: {
+          compra_id: string
+          created_at: string | null
+          id: string
+          preco_unitario: number
+          produto_id: string
+          quantidade: number
+          subtotal: number
+        }
+        Insert: {
+          compra_id: string
+          created_at?: string | null
+          id?: string
+          preco_unitario: number
+          produto_id: string
+          quantidade: number
+          subtotal: number
+        }
+        Update: {
+          compra_id?: string
+          created_at?: string | null
+          id?: string
+          preco_unitario?: number
+          produto_id?: string
+          quantidade?: number
+          subtotal?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compras_itens_compra_id_fkey"
+            columns: ["compra_id"]
+            isOneToOne: false
+            referencedRelation: "compras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compras_itens_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      configuracoes_empresa: {
+        Row: {
+          cep: string | null
+          cidade: string | null
+          cnpj: string | null
+          created_at: string | null
+          email: string | null
+          endereco: string | null
+          estado: string | null
+          id: string
+          logo_url: string | null
+          nome_empresa: string
+          telefone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          cep?: string | null
+          cidade?: string | null
+          cnpj?: string | null
+          created_at?: string | null
+          email?: string | null
+          endereco?: string | null
+          estado?: string | null
+          id?: string
+          logo_url?: string | null
+          nome_empresa: string
+          telefone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          cep?: string | null
+          cidade?: string | null
+          cnpj?: string | null
+          created_at?: string | null
+          email?: string | null
+          endereco?: string | null
+          estado?: string | null
+          id?: string
+          logo_url?: string | null
+          nome_empresa?: string
+          telefone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       contas_pagar: {
         Row: {
           categoria: string | null

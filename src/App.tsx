@@ -16,7 +16,10 @@ import Clientes from "./pages/Clientes";
 import Fornecedores from "./pages/Fornecedores";
 import Financeiro from "./pages/Financeiro";
 import Configuracoes from "./pages/Configuracoes";
+import Compras from "./pages/Compras";
+import Relatorios from "./pages/Relatorios";
 import NotFound from "./pages/NotFound";
+import { Calculadora } from "./components/Calculadora";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +28,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <Calculadora />
       <BrowserRouter>
         <Routes>
           <Route path="/auth" element={<Auth />} />
@@ -47,9 +51,11 @@ const App = () => (
                           <Route path="/pdv" element={<PDV />} />
                           <Route path="/vendas" element={<Vendas />} />
                           <Route path="/produtos" element={<Produtos />} />
+                          <Route path="/compras" element={<Compras />} />
                           <Route path="/clientes" element={<Clientes />} />
                           <Route path="/fornecedores" element={<Fornecedores />} />
                           <Route path="/financeiro" element={<Financeiro />} />
+                          <Route path="/relatorios" element={<Relatorios />} />
                           <Route path="/configuracoes" element={<Configuracoes />} />
                           <Route path="*" element={<NotFound />} />
                         </Routes>

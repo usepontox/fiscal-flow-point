@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   DollarSign, 
@@ -7,11 +8,16 @@ import {
   Package, 
   TrendingUp,
   AlertTriangle,
-  Users
+  Users,
+  Plus,
+  FileText
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const [stats, setStats] = useState({
     vendasHoje: 0,
     faturamentoHoje: 0,
@@ -23,6 +29,7 @@ export default function Dashboard() {
   });
   const [topProdutos, setTopProdutos] = useState<any[]>([]);
   const [ultimasVendas, setUltimasVendas] = useState<any[]>([]);
+  const [graficoVendas, setGraficoVendas] = useState<any[]>([]);
 
   useEffect(() => {
     loadDashboardData();
@@ -117,6 +124,27 @@ export default function Dashboard() {
 
     setTopProdutos(topProdutos as any);
     setUltimasVendas(ultimasVendas as any || []);
+
+    // Gráfico de vendas dos últimos 30 dias
+    const { data: vendasGrafico } = await supabase
+      .from("vendas")
+      .select("data_venda, total")
+      .eq("status", "finalizada")
+      .gte("data_venda", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
+      .order("data_venda");
+
+    const dadosGrafico = vendasGrafico?.reduce((acc: any, venda) => {
+      const data = new Date(venda.data_venda).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+      const existente = acc.find((item: any) => item.data === data);
+      if (existente) {
+        existente.valor += Number(venda.total);
+      } else {
+        acc.push({ data, valor: Number(venda.total) });
+      }
+      return acc;
+    }, []) || [];
+
+    setGraficoVendas(dadosGrafico);
   };
 
   const formatCurrency = (value: number) => {
@@ -137,9 +165,25 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground">Visão geral do seu negócio</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <p className="text-muted-foreground">Visão geral do seu negócio</p>
+        </div>
+        <div className="flex gap-2">
+          <Button onClick={() => navigate("/pdv")}>
+            <Plus className="mr-2 h-4 w-4" />
+            Nova Venda
+          </Button>
+          <Button variant="outline" onClick={() => navigate("/produtos")}>
+            <Plus className="mr-2 h-4 w-4" />
+            Novo Produto
+          </Button>
+          <Button variant="outline" onClick={() => navigate("/relatorios")}>
+            <FileText className="mr-2 h-4 w-4" />
+            Relatórios
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -207,6 +251,39 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Gráfico de Vendas */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Vendas dos Últimos 30 Dias</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {graficoVendas.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={graficoVendas}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="data" />
+                <YAxis />
+                <Tooltip 
+                  formatter={(value: any) => formatCurrency(value)}
+                  labelStyle={{ color: "#000" }}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="valor" 
+                  stroke="hsl(var(--primary))" 
+                  strokeWidth={2}
+                  dot={{ fill: "hsl(var(--primary))" }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <p className="text-center text-muted-foreground py-8">
+              Nenhuma venda registrada nos últimos 30 dias
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
