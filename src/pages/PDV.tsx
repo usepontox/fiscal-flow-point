@@ -13,6 +13,7 @@ import CupomFiscal from "@/components/CupomFiscal";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import InputMask from "react-input-mask";
 import { masks } from "@/lib/masks";
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 interface Produto {
   id: string;
@@ -460,48 +461,76 @@ export default function PDV() {
                           </TableCell>
                           <TableCell className="py-2">
                             <div className="flex items-center justify-center gap-1">
-                              <Button
-                                size="icon"
-                                variant="outline"
-                                className="h-6 w-6"
-                                onClick={() => alterarQuantidade(item.produto.id, -1)}
-                              >
-                                <Minus className="h-3 w-3" />
-                              </Button>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      size="icon"
+                                      variant="outline"
+                                      className="h-6 w-6"
+                                      onClick={() => alterarQuantidade(item.produto.id, -1)}
+                                    >
+                                      <Minus className="h-3 w-3" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Diminuir quantidade</TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                               <span className="w-6 text-center text-xs">{item.quantidade}</span>
-                              <Button
-                                size="icon"
-                                variant="outline"
-                                className="h-6 w-6"
-                                onClick={() => alterarQuantidade(item.produto.id, 1)}
-                              >
-                                <Plus className="h-3 w-3" />
-                              </Button>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      size="icon"
+                                      variant="outline"
+                                      className="h-6 w-6"
+                                      onClick={() => alterarQuantidade(item.produto.id, 1)}
+                                    >
+                                      <Plus className="h-3 w-3" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Aumentar quantidade</TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             </div>
                           </TableCell>
                           <TableCell className="text-xs text-right py-2">
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-6 w-6 mr-1"
-                              onClick={() => alterarPreco(item.produto.id)}
-                            >
-                              <Edit2 className="h-3 w-3" />
-                            </Button>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-6 w-6 mr-1"
+                                    onClick={() => alterarPreco(item.produto.id)}
+                                  >
+                                    <Edit2 className="h-3 w-3" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Alterar preço</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                             {formatCurrency(item.preco_unitario)}
                           </TableCell>
                           <TableCell className="text-xs text-right py-2 font-semibold">
                             {formatCurrency(item.subtotal)}
                           </TableCell>
                           <TableCell className="py-2">
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-6 w-6"
-                              onClick={() => removerItem(item.produto.id)}
-                            >
-                              <Trash2 className="h-3 w-3 text-destructive" />
-                            </Button>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-6 w-6"
+                                    onClick={() => removerItem(item.produto.id)}
+                                  >
+                                    <Trash2 className="h-3 w-3 text-destructive" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Remover item</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                           </TableCell>
                         </TableRow>
                       ))}

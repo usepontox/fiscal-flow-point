@@ -27,12 +27,12 @@ All colors MUST be HSL.
     --secondary-foreground: 222 47% 11%;
 
     /* Success: Verde para vendas */
-    --success: 142 71% 45%;
+    --success: 142 76% 36%;
     --success-foreground: 0 0% 100%;
     --success-light: 142 76% 96%;
 
     /* Warning: Amarelo para alertas */
-    --warning: 38 92% 50%;
+    --warning: 48 96% 53%;
     --warning-foreground: 0 0% 100%;
     --warning-light: 48 96% 95%;
 

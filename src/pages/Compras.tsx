@@ -6,9 +6,12 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Minus, Trash2, Package, Search } from "lucide-react";
+import { Plus, Minus, Trash2, Package, Search, FileText, Upload } from "lucide-react";
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import xml2js from "xml2js";
 
 interface Produto {
   id: string;
@@ -61,6 +64,72 @@ export default function Compras() {
       .order("nome");
     
     if (data) setFornecedores(data);
+  };
+
+  const handleImportarXML = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const parser = new xml2js.Parser({ explicitArray: false });
+      const result = await parser.parseStringPromise(text);
+      
+      // Extrair dados da nota fiscal (estrutura padrão NFe)
+      const nfe = result.nfeProc?.NFe?.infNFe || result.NFe?.infNFe;
+      
+      if (!nfe) {
+        toast({ title: "XML inválido", description: "Estrutura de NFe não encontrada", variant: "destructive" });
+        return;
+      }
+
+      // Extrair número da nota
+      setNumeroNota(nfe.ide?.nNF || "");
+
+      // Processar itens da nota
+      const itensNF = Array.isArray(nfe.det) ? nfe.det : [nfe.det];
+      const itensImportados: ItemCompra[] = [];
+
+      for (const item of itensNF) {
+        const prod = item.prod;
+        const nomeProduto = prod.xProd;
+        const quantidade = parseFloat(prod.qCom);
+        const precoUnitario = parseFloat(prod.vUnCom);
+
+        // Buscar produto existente ou criar placeholder
+        const produtoExistente = produtos.find(p => 
+          p.nome.toLowerCase() === nomeProduto.toLowerCase()
+        );
+
+        const produto: Produto = produtoExistente || {
+          id: `temp-${Date.now()}-${Math.random()}`,
+          nome: nomeProduto,
+          custo: precoUnitario
+        };
+
+        itensImportados.push({
+          produto,
+          quantidade,
+          preco_unitario: precoUnitario,
+          subtotal: quantidade * precoUnitario
+        });
+      }
+
+      setItens(itensImportados);
+      toast({ 
+        title: "XML importado com sucesso!", 
+        description: `${itensImportados.length} itens carregados`
+      });
+      
+    } catch (error: any) {
+      toast({ 
+        title: "Erro ao processar XML", 
+        description: error.message, 
+        variant: "destructive" 
+      });
+    }
+
+    e.target.value = '';
   };
 
   const adicionarItem = (produto: Produto) => {
@@ -151,20 +220,23 @@ export default function Compras() {
 
       if (compraError) throw compraError;
 
-      // Criar itens da compra
-      const itensCompra = itens.map(item => ({
-        compra_id: compra.id,
-        produto_id: item.produto.id,
-        quantidade: item.quantidade,
-        preco_unitario: item.preco_unitario,
-        subtotal: item.subtotal,
-      }));
+      // Criar itens da compra (apenas produtos reais)
+      const itensReais = itens.filter(item => !item.produto.id.startsWith("temp-"));
+      if (itensReais.length > 0) {
+        const itensCompra = itensReais.map(item => ({
+          compra_id: compra.id,
+          produto_id: item.produto.id,
+          quantidade: item.quantidade,
+          preco_unitario: item.preco_unitario,
+          subtotal: item.subtotal,
+        }));
 
-      const { error: itensError } = await supabase
-        .from("compras_itens")
-        .insert(itensCompra);
+        const { error: itensError } = await supabase
+          .from("compras_itens")
+          .insert(itensCompra);
 
-      if (itensError) throw itensError;
+        if (itensError) throw itensError;
+      }
 
       toast({
         title: "Compra registrada com sucesso!",
@@ -205,10 +277,17 @@ export default function Compras() {
           <h1 className="text-3xl font-bold">Compras / Entradas</h1>
           <p className="text-muted-foreground">Registre entrada de produtos no estoque</p>
         </div>
-        <Button onClick={() => setDialogOpen(true)}>
-          <Package className="mr-2 h-4 w-4" />
-          Nova Compra
-        </Button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button onClick={() => setDialogOpen(true)}>
+                <Package className="mr-2 h-4 w-4" />
+                Nova Compra
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Registrar nova entrada de produtos</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -218,7 +297,7 @@ export default function Compras() {
           </DialogHeader>
           
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div>
                 <Label>Fornecedor (opcional)</Label>
                 <Select value={fornecedorId} onValueChange={setFornecedorId}>
@@ -238,6 +317,31 @@ export default function Compras() {
                   value={numeroNota}
                   onChange={(e) => setNumeroNota(e.target.value)}
                   placeholder="Ex: 123456"
+                />
+              </div>
+              <div>
+                <Label>Importar XML NFe</Label>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant="outline" 
+                        className="w-full"
+                        onClick={() => document.getElementById('xml-upload')?.click()}
+                      >
+                        <FileText className="mr-2 h-4 w-4" />
+                        Carregar XML
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Importar produtos de nota fiscal eletrônica (XML)</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <input
+                  id="xml-upload"
+                  type="file"
+                  accept=".xml"
+                  onChange={handleImportarXML}
+                  className="hidden"
                 />
               </div>
             </div>
@@ -260,7 +364,7 @@ export default function Compras() {
                   {produtosFiltrados.map(produto => (
                     <div
                       key={produto.id}
-                      className="flex items-center justify-between p-2 border rounded mb-2 hover:bg-accent cursor-pointer"
+                      className="flex items-center justify-between p-2 border rounded mb-2 hover:bg-accent cursor-pointer transition-colors"
                       onClick={() => adicionarItem(produto)}
                     >
                       <div>
@@ -277,13 +381,21 @@ export default function Compras() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">Itens da Compra</CardTitle>
+                  <CardTitle className="text-lg flex items-center justify-between">
+                    <span>Itens da Compra</span>
+                    {itens.length > 0 && (
+                      <Badge variant="secondary">{itens.length} {itens.length === 1 ? 'item' : 'itens'}</Badge>
+                    )}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="max-h-[400px] overflow-auto">
                   {itens.length === 0 ? (
-                    <p className="text-center text-muted-foreground py-8">
-                      Adicione produtos à compra
-                    </p>
+                    <div className="text-center py-12">
+                      <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
+                      <p className="text-muted-foreground">
+                        Adicione produtos ou importe XML
+                      </p>
+                    </div>
                   ) : (
                     <Table>
                       <TableHeader>
@@ -298,7 +410,14 @@ export default function Compras() {
                       <TableBody>
                         {itens.map(item => (
                           <TableRow key={item.produto.id}>
-                            <TableCell className="text-xs">{item.produto.nome}</TableCell>
+                            <TableCell className="text-xs">
+                              {item.produto.nome}
+                              {item.produto.id.startsWith("temp-") && (
+                                <Badge variant="outline" className="ml-2 bg-yellow-100 text-xs">
+                                  Novo
+                                </Badge>
+                              )}
+                            </TableCell>
                             <TableCell>
                               <div className="flex items-center gap-1">
                                 <Button
@@ -333,14 +452,21 @@ export default function Compras() {
                               {formatCurrency(item.subtotal)}
                             </TableCell>
                             <TableCell>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-6 w-6"
-                                onClick={() => removerItem(item.produto.id)}
-                              >
-                                <Trash2 className="h-3 w-3 text-destructive" />
-                              </Button>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-6 w-6"
+                                      onClick={() => removerItem(item.produto.id)}
+                                    >
+                                      <Trash2 className="h-3 w-3 text-destructive" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Remover item</TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             </TableCell>
                           </TableRow>
                         ))}
