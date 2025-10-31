@@ -10,10 +10,12 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import PDV from "./pages/PDV";
+import Vendas from "./pages/Vendas";
 import Produtos from "./pages/Produtos";
 import Clientes from "./pages/Clientes";
 import Fornecedores from "./pages/Fornecedores";
 import Financeiro from "./pages/Financeiro";
+import Configuracoes from "./pages/Configuracoes";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -43,10 +45,12 @@ const App = () => (
                         <Routes>
                           <Route path="/dashboard" element={<Dashboard />} />
                           <Route path="/pdv" element={<PDV />} />
+                          <Route path="/vendas" element={<Vendas />} />
                           <Route path="/produtos" element={<Produtos />} />
                           <Route path="/clientes" element={<Clientes />} />
                           <Route path="/fornecedores" element={<Fornecedores />} />
                           <Route path="/financeiro" element={<Financeiro />} />
+                          <Route path="/configuracoes" element={<Configuracoes />} />
                           <Route path="*" element={<NotFound />} />
                         </Routes>
                       </div>
