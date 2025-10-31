@@ -5,9 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Plus, Minus, Trash2, ShoppingCart } from "lucide-react";
+import { Search, Plus, Minus, Trash2, ShoppingCart, Receipt, Clock } from "lucide-react";
+import CupomFiscal from "@/components/CupomFiscal";
 
 interface Produto {
   id: string;
@@ -22,6 +24,15 @@ interface ItemVenda {
   subtotal: number;
 }
 
+interface VendaRecente {
+  id: string;
+  numero_venda: string;
+  data_venda: string;
+  total: number;
+  forma_pagamento: string;
+  status: string;
+}
+
 export default function PDV() {
   const { toast } = useToast();
   const [produtos, setProdutos] = useState<Produto[]>([]);
@@ -29,9 +40,13 @@ export default function PDV() {
   const [carrinho, setCarrinho] = useState<ItemVenda[]>([]);
   const [formaPagamento, setFormaPagamento] = useState<string>("dinheiro");
   const [loading, setLoading] = useState(false);
+  const [vendasRecentes, setVendasRecentes] = useState<VendaRecente[]>([]);
+  const [cupomVendaId, setCupomVendaId] = useState<string | null>(null);
+  const [cupomOpen, setCupomOpen] = useState(false);
 
   useEffect(() => {
     loadProdutos();
+    loadVendasRecentes();
   }, []);
 
   const loadProdutos = async () => {
@@ -42,6 +57,25 @@ export default function PDV() {
       .gt("estoque_atual", 0);
 
     if (data) setProdutos(data);
+  };
+
+  const loadVendasRecentes = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data } = await supabase
+      .from("vendas")
+      .select("id, numero_venda, data_venda, total, forma_pagamento, status")
+      .eq("operador_id", user.id)
+      .order("data_venda", { ascending: false })
+      .limit(10);
+
+    if (data) setVendasRecentes(data);
+  };
+
+  const visualizarCupom = (vendaId: string) => {
+    setCupomVendaId(vendaId);
+    setCupomOpen(true);
   };
 
   const adicionarProduto = (produto: Produto) => {
@@ -147,8 +181,13 @@ export default function PDV() {
         description: `Total: ${formatCurrency(total)}`,
       });
 
+      // Mostrar cupom automaticamente
+      setCupomVendaId(venda.id);
+      setCupomOpen(true);
+
       setCarrinho([]);
       loadProdutos();
+      loadVendasRecentes();
     } catch (error: any) {
       toast({
         title: "Erro ao finalizar venda",
@@ -171,6 +210,16 @@ export default function PDV() {
     p.nome.toLowerCase().includes(busca.toLowerCase())
   );
 
+  const formatDate = (date: string) => {
+    return new Date(date).toLocaleString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -178,9 +227,9 @@ export default function PDV() {
         <p className="text-muted-foreground">Sistema de Ponto de Venda</p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-3">
         {/* Produtos */}
-        <Card>
+        <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>Produtos</CardTitle>
             <div className="relative">
@@ -314,6 +363,65 @@ export default function PDV() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Vendas Recentes */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5" />
+            Vendas Recentes
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nº Venda</TableHead>
+                <TableHead>Data/Hora</TableHead>
+                <TableHead>Total</TableHead>
+                <TableHead>Pagamento</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {vendasRecentes.map((venda) => (
+                <TableRow key={venda.id}>
+                  <TableCell className="font-medium">{venda.numero_venda}</TableCell>
+                  <TableCell>{formatDate(venda.data_venda)}</TableCell>
+                  <TableCell className="font-bold text-success">
+                    {formatCurrency(venda.total)}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{venda.forma_pagamento.toUpperCase()}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={venda.status === "finalizada" ? "default" : "secondary"}>
+                      {venda.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => visualizarCupom(venda.id)}
+                    >
+                      <Receipt className="h-4 w-4 mr-2" />
+                      Cupom
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <CupomFiscal
+        vendaId={cupomVendaId}
+        open={cupomOpen}
+        onOpenChange={setCupomOpen}
+      />
     </div>
   );
 }
