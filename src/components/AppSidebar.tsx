@@ -31,7 +31,7 @@ const menuItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "PDV / Caixa", url: "/pdv", icon: ShoppingCart },
   { title: "Vendas", url: "/vendas", icon: Receipt },
-  { title: "Produtos", url: "/produtos", icon: Package },
+  { title: "Estoque", url: "/estoque", icon: Package },
   { title: "Clientes", url: "/clientes", icon: Users },
   { title: "Fornecedores", url: "/fornecedores", icon: Truck },
   { title: "Financeiro", url: "/financeiro", icon: DollarSign },
