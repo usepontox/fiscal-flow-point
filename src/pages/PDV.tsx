@@ -44,7 +44,7 @@ export default function PDV() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [busca, setBusca] = useState("");
   const [carrinho, setCarrinho] = useState<ItemVenda[]>([]);
-  const [clienteId, setClienteId] = useState<string>("");
+  const [clienteId, setClienteId] = useState<string>("anonimo");
   const [formaPagamento, setFormaPagamento] = useState<string>("dinheiro");
   const [loading, setLoading] = useState(false);
   const [vendasRecentes, setVendasRecentes] = useState<VendaRecente[]>([]);
@@ -166,7 +166,7 @@ export default function PDV() {
         .from("vendas")
         .insert({
           operador_id: user.id,
-          cliente_id: clienteId || null,
+          cliente_id: clienteId === "anonimo" ? null : clienteId,
           numero_venda: `VENDA-${Date.now()}`,
           subtotal: total,
           desconto: 0,
@@ -204,7 +204,7 @@ export default function PDV() {
       setCupomOpen(true);
 
       setCarrinho([]);
-      setClienteId("");
+      setClienteId("anonimo");
       loadProdutos();
       loadVendasRecentes();
     } catch (error: any) {
@@ -307,7 +307,7 @@ export default function PDV() {
                   <SelectValue placeholder="Venda Anônima" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Venda Anônima</SelectItem>
+                  <SelectItem value="anonimo">Venda Anônima</SelectItem>
                   {clientes.map(cliente => (
                     <SelectItem key={cliente.id} value={cliente.id}>
                       {cliente.nome}
