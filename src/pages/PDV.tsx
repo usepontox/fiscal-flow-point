@@ -19,6 +19,9 @@ interface Produto {
   nome: string;
   preco_venda: number;
   estoque_atual: number;
+  codigo_barras?: string;
+  sku?: string;
+  ncm?: string;
 }
 
 interface ItemVenda {
@@ -40,6 +43,8 @@ interface VendaRecente {
 interface Cliente {
   id: string;
   nome: string;
+  cpf?: string;
+  cnpj?: string;
 }
 
 export default function PDV() {
@@ -72,7 +77,7 @@ export default function PDV() {
   const loadProdutos = async () => {
     const { data } = await supabase
       .from("produtos")
-      .select("id, nome, preco_venda, estoque_atual")
+      .select("id, nome, preco_venda, estoque_atual, codigo_barras, sku, ncm")
       .eq("ativo", true);
 
     if (data) setProdutos(data);
@@ -81,7 +86,7 @@ export default function PDV() {
   const loadClientes = async () => {
     const { data } = await supabase
       .from("clientes")
-      .select("id, nome")
+      .select("id, nome, cpf, cnpj")
       .order("nome");
 
     if (data) setClientes(data);
@@ -298,7 +303,9 @@ export default function PDV() {
   };
 
   const produtosFiltrados = produtos.filter(p =>
-    p.nome.toLowerCase().includes(busca.toLowerCase())
+    p.nome.toLowerCase().includes(busca.toLowerCase()) ||
+    p.codigo_barras?.toLowerCase().includes(busca.toLowerCase()) ||
+    p.sku?.toLowerCase().includes(busca.toLowerCase())
   );
 
   const formatDate = (date: string) => {
@@ -395,19 +402,37 @@ export default function PDV() {
               </Select>
             </div>
 
-            {/* CPF na Nota */}
-            <div>
-              <Label className="text-xs">CPF na Nota (opcional)</Label>
-              <InputMask
-                mask={masks.cpf}
-                value={cpfNota}
-                onChange={(e) => setCpfNota(e.target.value)}
-              >
-                {(inputProps: any) => (
-                  <Input {...inputProps} placeholder="000.000.000-00" className="mt-1" />
-                )}
-              </InputMask>
-            </div>
+            {/* CPF/CNPJ do Cliente */}
+            {clienteId !== "anonimo" && (
+              <div>
+                <Label className="text-xs">CPF/CNPJ do Cliente</Label>
+                <Input 
+                  value={
+                    clientes.find(c => c.id === clienteId)?.cpf || 
+                    clientes.find(c => c.id === clienteId)?.cnpj || 
+                    ""
+                  }
+                  disabled
+                  className="mt-1 bg-muted"
+                />
+              </div>
+            )}
+            
+            {/* CPF na Nota (quando anônimo) */}
+            {clienteId === "anonimo" && (
+              <div>
+                <Label className="text-xs">CPF na Nota (opcional)</Label>
+                <InputMask
+                  mask={masks.cpf}
+                  value={cpfNota}
+                  onChange={(e) => setCpfNota(e.target.value)}
+                >
+                  {(inputProps: any) => (
+                    <Input {...inputProps} placeholder="000.000.000-00" className="mt-1" />
+                  )}
+                </InputMask>
+              </div>
+            )}
 
             {/* Itens do Carrinho */}
             <div className="border rounded-lg">

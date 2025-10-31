@@ -10,6 +10,7 @@ import { Plus, Search, AlertTriangle, Edit, Trash2, Upload } from "lucide-react"
 import ProdutoForm from "@/components/ProdutoForm";
 import { useToast } from "@/hooks/use-toast";
 import * as XLSX from "xlsx";
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 export default function Produtos() {
   const [produtos, setProdutos] = useState<any[]>([]);
@@ -168,10 +169,27 @@ export default function Produtos() {
           <p className="text-muted-foreground">Gestão de estoque e produtos</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" className="gap-2" onClick={() => document.getElementById('file-upload')?.click()}>
-            <Upload className="h-4 w-4" />
-            Importar Excel
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" className="gap-2" onClick={() => document.getElementById('file-upload')?.click()}>
+                  <Upload className="h-4 w-4" />
+                  Importar Excel
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Importar produtos de planilha Excel</TooltipContent>
+            </Tooltip>
+            
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button className="gap-2" onClick={handleNovoClick}>
+                  <Plus className="h-4 w-4" />
+                  Novo Produto
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Cadastrar novo produto</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           <input
             id="file-upload"
             type="file"
@@ -179,10 +197,6 @@ export default function Produtos() {
             onChange={handleImportarExcel}
             className="hidden"
           />
-          <Button className="gap-2" onClick={handleNovoClick}>
-            <Plus className="h-4 w-4" />
-            Novo Produto
-          </Button>
         </div>
       </div>
 
@@ -234,12 +248,25 @@ export default function Produtos() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" onClick={() => handleEditar(produto)}>
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleDeletar(produto.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" onClick={() => handleEditar(produto)}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Editar produto</TooltipContent>
+                        </Tooltip>
+                        
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" onClick={() => handleDeletar(produto.id)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Excluir produto</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                   </TableCell>
                 </TableRow>
               ))}

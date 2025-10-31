@@ -12,6 +12,12 @@ interface Venda {
   desconto: number;
   total: number;
   forma_pagamento: string;
+  cliente_id?: string;
+  clientes?: {
+    nome: string;
+    cpf?: string;
+    cnpj?: string;
+  } | null;
 }
 
 interface ItemVenda {
@@ -45,7 +51,10 @@ export default function CupomFiscal({ vendaId, open, onOpenChange }: CupomFiscal
 
     const { data: vendaData } = await supabase
       .from("vendas")
-      .select("*")
+      .select(`
+        *,
+        clientes:cliente_id (nome, cpf, cnpj)
+      `)
       .eq("id", vendaId)
       .single();
 
@@ -104,6 +113,23 @@ export default function CupomFiscal({ vendaId, open, onOpenChange }: CupomFiscal
               <p>
                 <strong>Pagamento:</strong> {venda.forma_pagamento.toUpperCase()}
               </p>
+              {venda.clientes && (
+                <>
+                  <p>
+                    <strong>Cliente:</strong> {venda.clientes.nome}
+                  </p>
+                  {venda.clientes.cpf && (
+                    <p>
+                      <strong>CPF:</strong> {venda.clientes.cpf}
+                    </p>
+                  )}
+                  {venda.clientes.cnpj && (
+                    <p>
+                      <strong>CNPJ:</strong> {venda.clientes.cnpj}
+                    </p>
+                  )}
+                </>
+              )}
             </div>
 
             {/* Itens */}

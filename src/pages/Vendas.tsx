@@ -2,11 +2,12 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Receipt, X } from "lucide-react";
+import { Search, Receipt, X, Filter } from "lucide-react";
 import CupomFiscal from "@/components/CupomFiscal";
 import {
   AlertDialog,
@@ -18,6 +19,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import InputMask from "react-input-mask";
+import { masks } from "@/lib/masks";
 
 interface Venda {
   id: string;
@@ -26,7 +30,7 @@ interface Venda {
   total: number;
   forma_pagamento: string;
   status: string;
-  clientes?: { nome: string } | null;
+  clientes?: { nome: string; cpf?: string; cnpj?: string } | null;
 }
 
 export default function Vendas() {
@@ -36,6 +40,14 @@ export default function Vendas() {
   const [cupomVendaId, setCupomVendaId] = useState<string | null>(null);
   const [cupomOpen, setCupomOpen] = useState(false);
   const [vendaCancelarId, setVendaCancelarId] = useState<string | null>(null);
+  
+  // Filtros avançados
+  const [filtros, setFiltros] = useState({
+    nomeCliente: "",
+    dataInicio: "",
+    dataFim: "",
+    cpfCnpj: ""
+  });
 
   useEffect(() => {
     loadVendas();
@@ -46,7 +58,7 @@ export default function Vendas() {
       .from("vendas")
       .select(`
         *,
-        clientes:cliente_id (nome)
+        clientes:cliente_id (nome, cpf, cnpj)
       `)
       .order("data_venda", { ascending: false });
 
@@ -76,7 +88,7 @@ export default function Vendas() {
         variant: "destructive",
       });
     } else {
-      toast({ title: "Venda cancelada com sucesso!" });
+      toast({ title: "Venda cancelada! O estoque foi automaticamente restaurado." });
       loadVendas();
     }
     
@@ -105,11 +117,40 @@ export default function Vendas() {
     });
   };
 
-  const vendasFiltradas = vendas.filter(
-    (v) =>
+  const limparFiltros = () => {
+    setFiltros({
+      nomeCliente: "",
+      dataInicio: "",
+      dataFim: "",
+      cpfCnpj: ""
+    });
+    setBusca("");
+  };
+
+  const vendasFiltradas = vendas.filter((v) => {
+    // Filtro de busca rápida
+    const matchBuscaRapida = busca === "" || 
       v.numero_venda.toLowerCase().includes(busca.toLowerCase()) ||
-      v.clientes?.nome?.toLowerCase().includes(busca.toLowerCase())
-  );
+      v.clientes?.nome?.toLowerCase().includes(busca.toLowerCase());
+
+    // Filtro por nome do cliente
+    const matchNomeCliente = filtros.nomeCliente === "" ||
+      v.clientes?.nome?.toLowerCase().includes(filtros.nomeCliente.toLowerCase());
+
+    // Filtro por CPF/CNPJ
+    const matchCpfCnpj = filtros.cpfCnpj === "" ||
+      v.clientes?.cpf?.includes(filtros.cpfCnpj) ||
+      v.clientes?.cnpj?.includes(filtros.cpfCnpj);
+
+    // Filtro por período
+    const dataVenda = new Date(v.data_venda);
+    const matchDataInicio = filtros.dataInicio === "" ||
+      dataVenda >= new Date(filtros.dataInicio + "T00:00:00");
+    const matchDataFim = filtros.dataFim === "" ||
+      dataVenda <= new Date(filtros.dataFim + "T23:59:59");
+
+    return matchBuscaRapida && matchNomeCliente && matchCpfCnpj && matchDataInicio && matchDataFim;
+  });
 
   return (
     <div className="space-y-6">
@@ -120,11 +161,81 @@ export default function Vendas() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Lista de Vendas</CardTitle>
+          <CardTitle className="flex items-center justify-between">
+            <span>Lista de Vendas</span>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Filter className="mr-2 h-4 w-4" />
+                  Filtros Avançados
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80">
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="nomeCliente" className="text-sm font-medium">
+                      Nome do Cliente
+                    </Label>
+                    <Input
+                      id="nomeCliente"
+                      value={filtros.nomeCliente}
+                      onChange={(e) => setFiltros({ ...filtros, nomeCliente: e.target.value })}
+                      placeholder="Digite o nome..."
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="cpfCnpj" className="text-sm font-medium">
+                      CPF ou CNPJ
+                    </Label>
+                    <Input
+                      id="cpfCnpj"
+                      value={filtros.cpfCnpj}
+                      onChange={(e) => setFiltros({ ...filtros, cpfCnpj: e.target.value })}
+                      placeholder="Digite CPF ou CNPJ..."
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="dataInicio" className="text-sm font-medium">
+                      Data Início
+                    </Label>
+                    <Input
+                      id="dataInicio"
+                      type="date"
+                      value={filtros.dataInicio}
+                      onChange={(e) => setFiltros({ ...filtros, dataInicio: e.target.value })}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="dataFim" className="text-sm font-medium">
+                      Data Fim
+                    </Label>
+                    <Input
+                      id="dataFim"
+                      type="date"
+                      value={filtros.dataFim}
+                      onChange={(e) => setFiltros({ ...filtros, dataFim: e.target.value })}
+                      className="mt-1"
+                    />
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={limparFiltros}
+                    className="w-full"
+                  >
+                    Limpar Filtros
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </CardTitle>
           <div className="relative">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar por número da venda ou cliente..."
+              placeholder="Busca rápida por número da venda ou cliente..."
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
               className="pl-9"
@@ -132,11 +243,15 @@ export default function Vendas() {
           </div>
         </CardHeader>
         <CardContent>
+          <div className="text-sm text-muted-foreground mb-4">
+            Mostrando {vendasFiltradas.length} de {vendas.length} vendas
+          </div>
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Nº Venda</TableHead>
                 <TableHead>Cliente</TableHead>
+                <TableHead>CPF/CNPJ</TableHead>
                 <TableHead>Data/Hora</TableHead>
                 <TableHead>Total</TableHead>
                 <TableHead>Pagamento</TableHead>
@@ -149,6 +264,9 @@ export default function Vendas() {
                 <TableRow key={venda.id}>
                   <TableCell className="font-medium">{venda.numero_venda}</TableCell>
                   <TableCell>{venda.clientes?.nome || "Anônimo"}</TableCell>
+                  <TableCell className="text-sm">
+                    {venda.clientes?.cpf || venda.clientes?.cnpj || "-"}
+                  </TableCell>
                   <TableCell>{formatDate(venda.data_venda)}</TableCell>
                   <TableCell className="font-bold text-success">
                     {formatCurrency(venda.total)}
@@ -184,6 +302,7 @@ export default function Vendas() {
                           variant="ghost"
                           size="sm"
                           onClick={() => setVendaCancelarId(venda.id)}
+                          className="text-destructive hover:text-destructive"
                         >
                           <X className="h-4 w-4 mr-2" />
                           Cancelar
@@ -207,16 +326,19 @@ export default function Vendas() {
       <AlertDialog open={!!vendaCancelarId} onOpenChange={() => setVendaCancelarId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Cancelar Venda</AlertDialogTitle>
+            <AlertDialogTitle>Cancelar Venda e Devolver ao Estoque</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja cancelar esta venda? Esta ação não pode ser desfeita.
-              O estoque NÃO será automaticamente restaurado.
+              Tem certeza que deseja cancelar esta venda? 
+              <br /><br />
+              <strong className="text-success">✓ O estoque será automaticamente restaurado</strong>
+              <br />
+              <strong className="text-warning">⚠ Esta ação não pode ser desfeita</strong>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Não</AlertDialogCancel>
-            <AlertDialogAction onClick={cancelarVenda}>
-              Sim, Cancelar
+            <AlertDialogAction onClick={cancelarVenda} className="bg-destructive hover:bg-destructive/90">
+              Sim, Cancelar Venda
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

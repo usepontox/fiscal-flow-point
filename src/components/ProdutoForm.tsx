@@ -37,6 +37,7 @@ export default function ProdutoForm({ open, onOpenChange, onSuccess, produtoEdit
     descricao: produtoEditando?.descricao || "",
     sku: produtoEditando?.sku || "",
     codigo_barras: produtoEditando?.codigo_barras || "",
+    ncm: (produtoEditando as any)?.ncm || "",
     unidade: produtoEditando?.unidade || "UN",
     custo: produtoEditando?.custo?.toString() || "",
     preco_venda: produtoEditando?.preco_venda?.toString() || "",
@@ -53,6 +54,7 @@ export default function ProdutoForm({ open, onOpenChange, onSuccess, produtoEdit
         descricao: produtoEditando.descricao || "",
         sku: produtoEditando.sku || "",
         codigo_barras: produtoEditando.codigo_barras || "",
+        ncm: (produtoEditando as any).ncm || "",
         unidade: produtoEditando.unidade,
         custo: produtoEditando.custo.toString(),
         preco_venda: produtoEditando.preco_venda.toString(),
@@ -66,6 +68,7 @@ export default function ProdutoForm({ open, onOpenChange, onSuccess, produtoEdit
         descricao: "",
         sku: "",
         codigo_barras: "",
+        ncm: "",
         unidade: "UN",
         custo: "",
         preco_venda: "",
@@ -86,6 +89,7 @@ export default function ProdutoForm({ open, onOpenChange, onSuccess, produtoEdit
         descricao: formData.descricao || null,
         sku: formData.sku || null,
         codigo_barras: formData.codigo_barras || null,
+        ncm: formData.ncm || null,
         unidade: formData.unidade,
         custo: parseFloat(formData.custo) || 0,
         preco_venda: parseFloat(formData.preco_venda) || 0,
@@ -123,6 +127,7 @@ export default function ProdutoForm({ open, onOpenChange, onSuccess, produtoEdit
         descricao: "",
         sku: "",
         codigo_barras: "",
+        ncm: "",
         unidade: "UN",
         custo: "",
         preco_venda: "",
@@ -186,6 +191,20 @@ export default function ProdutoForm({ open, onOpenChange, onSuccess, produtoEdit
                 id="codigo_barras"
                 value={formData.codigo_barras}
                 onChange={(e) => setFormData({ ...formData, codigo_barras: e.target.value })}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="ncm">NCM (8 dígitos)</Label>
+              <Input
+                id="ncm"
+                value={formData.ncm}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, '').slice(0, 8);
+                  setFormData({ ...formData, ncm: value });
+                }}
+                placeholder="00000000"
+                maxLength={8}
               />
             </div>
 

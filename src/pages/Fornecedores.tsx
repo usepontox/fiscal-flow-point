@@ -10,6 +10,8 @@ import { Plus, Search, Edit, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import InputMask from "react-input-mask";
 import { masks } from "@/lib/masks";
+import ImportExportButtons from "@/components/ImportExportButtons";
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 interface Fornecedor {
   id: string;
@@ -144,17 +146,48 @@ export default function Fornecedores() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Fornecedores</h1>
-        <p className="text-muted-foreground">Gerencie seus fornecedores</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Fornecedores</h1>
+          <p className="text-muted-foreground">Gerencie seus fornecedores</p>
+        </div>
+        <div className="flex gap-2">
+          <ImportExportButtons
+            data={fornecedores}
+            onImport={async (newItems) => {
+              const { error } = await supabase.from("fornecedores").insert(newItems);
+              if (error) throw error;
+              await carregarFornecedores();
+            }}
+            requiredColumns={["nome"]}
+            keyField="nome"
+            entityName="Fornecedores"
+            templateColumns={{
+              nome: "Fornecedor ABC Ltda",
+              cpf: "",
+              cnpj: "00.000.000/0000-00",
+              email: "contato@fornecedor.com",
+              telefone: "(11) 3333-4444",
+              endereco: "Av. Comercial, 456",
+              cidade: "São Paulo",
+              estado: "SP",
+              cep: "00000-000"
+            }}
+          />
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button onClick={() => setDialogAberto(true)}>
+                  <Plus className="mr-2 h-4 w-4" /> Novo Fornecedor
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Cadastrar novo fornecedor</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
       </div>
 
       <Dialog open={dialogAberto} onOpenChange={setDialogAberto}>
-        <DialogTrigger asChild>
-          <Button onClick={() => setFornecedorEditando(null)}>
-            <Plus className="mr-2 h-4 w-4" /> Novo Fornecedor
-          </Button>
-        </DialogTrigger>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{fornecedorEditando ? "Editar Fornecedor" : "Novo Fornecedor"}</DialogTitle>
@@ -292,12 +325,25 @@ export default function Fornecedores() {
                   <TableCell>{fornecedor.telefone || "-"}</TableCell>
                   <TableCell>{fornecedor.cidade || "-"}</TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" onClick={() => handleEditar(fornecedor)}>
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleDeletar(fornecedor.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" onClick={() => handleEditar(fornecedor)}>
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Editar fornecedor</TooltipContent>
+                      </Tooltip>
+                      
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" onClick={() => handleDeletar(fornecedor.id)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Excluir fornecedor</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </TableCell>
                 </TableRow>
               ))}

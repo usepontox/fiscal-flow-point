@@ -10,6 +10,8 @@ import { Plus, Search, Edit, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import InputMask from "react-input-mask";
 import { masks } from "@/lib/masks";
+import ImportExportButtons from "@/components/ImportExportButtons";
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 interface Cliente {
   id: string;
@@ -152,17 +154,49 @@ export default function Clientes() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Clientes</h1>
-        <p className="text-muted-foreground">Gerencie seus clientes</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Clientes</h1>
+          <p className="text-muted-foreground">Gerencie seus clientes</p>
+        </div>
+        <div className="flex gap-2">
+          <ImportExportButtons
+            data={clientes}
+            onImport={async (newItems) => {
+              const { error } = await supabase.from("clientes").insert(newItems);
+              if (error) throw error;
+              await carregarClientes();
+            }}
+            requiredColumns={["nome"]}
+            keyField="nome"
+            entityName="Clientes"
+            templateColumns={{
+              nome: "João Silva",
+              cpf: "000.000.000-00",
+              cnpj: "",
+              email: "joao@email.com",
+              telefone: "(11) 99999-9999",
+              endereco: "Rua ABC, 123",
+              cidade: "São Paulo",
+              estado: "SP",
+              cep: "00000-000",
+              limite_credito: "1000.00"
+            }}
+          />
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button onClick={() => setDialogAberto(true)}>
+                  <Plus className="mr-2 h-4 w-4" /> Novo Cliente
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Cadastrar novo cliente</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
       </div>
 
       <Dialog open={dialogAberto} onOpenChange={setDialogAberto}>
-        <DialogTrigger asChild>
-          <Button onClick={() => setClienteEditando(null)}>
-            <Plus className="mr-2 h-4 w-4" /> Novo Cliente
-          </Button>
-        </DialogTrigger>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{clienteEditando ? "Editar Cliente" : "Novo Cliente"}</DialogTitle>
@@ -312,12 +346,25 @@ export default function Clientes() {
                   <TableCell>{cliente.cidade || "-"}</TableCell>
                   <TableCell>{formatCurrency(cliente.limite_credito)}</TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" onClick={() => handleEditar(cliente)}>
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleDeletar(cliente.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" onClick={() => handleEditar(cliente)}>
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Editar cliente</TooltipContent>
+                      </Tooltip>
+                      
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" onClick={() => handleDeletar(cliente.id)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Excluir cliente</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </TableCell>
                 </TableRow>
               ))}
