@@ -61,19 +61,11 @@ export default function PDV() {
   const [vendasRecentes, setVendasRecentes] = useState<VendaRecente[]>([]);
   const [cupomVendaId, setCupomVendaId] = useState<string | null>(null);
   const [cupomOpen, setCupomOpen] = useState(false);
-<<<<<<< HEAD
   
   // Produto manual
   const [produtoManualOpen, setProdutoManualOpen] = useState(false);
   const [produtoManual, setProdutoManual] = useState({ nome: "", preco: "", quantidade: "1" });
   
-=======
-
-  // Produto manual
-  const [produtoManualOpen, setProdutoManualOpen] = useState(false);
-  const [produtoManual, setProdutoManual] = useState({ nome: "", preco: "", quantidade: "1" });
-
->>>>>>> 327c551 (Subindo correções iniciais)
   // Editar preço
   const [editandoPreco, setEditandoPreco] = useState<{ id: string; preco: string } | null>(null);
 
@@ -126,19 +118,11 @@ export default function PDV() {
     if (itemExistente) {
       setCarrinho(carrinho.map(item =>
         item.produto.id === produto.id
-<<<<<<< HEAD
           ? { 
               ...item, 
               quantidade: item.quantidade + 1, 
               subtotal: (item.quantidade + 1) * item.preco_unitario 
             }
-=======
-          ? {
-            ...item,
-            quantidade: item.quantidade + 1,
-            subtotal: (item.quantidade + 1) * item.preco_unitario
-          }
->>>>>>> 327c551 (Subindo correções iniciais)
           : item
       ));
     } else {
@@ -217,19 +201,11 @@ export default function PDV() {
 
     setCarrinho(carrinho.map(item =>
       item.produto.id === editandoPreco.id
-<<<<<<< HEAD
         ? { 
             ...item, 
             preco_unitario: novoPreco, 
             subtotal: item.quantidade * novoPreco 
           }
-=======
-        ? {
-          ...item,
-          preco_unitario: novoPreco,
-          subtotal: item.quantidade * novoPreco
-        }
->>>>>>> 327c551 (Subindo correções iniciais)
         : item
     ));
 
@@ -431,17 +407,10 @@ export default function PDV() {
             {clienteId !== "anonimo" && (
               <div>
                 <Label className="text-xs">CPF/CNPJ do Cliente</Label>
-<<<<<<< HEAD
                 <Input 
                   value={
                     clientes.find(c => c.id === clienteId)?.cpf || 
                     clientes.find(c => c.id === clienteId)?.cnpj || 
-=======
-                <Input
-                  value={
-                    clientes.find(c => c.id === clienteId)?.cpf ||
-                    clientes.find(c => c.id === clienteId)?.cnpj ||
->>>>>>> 327c551 (Subindo correções iniciais)
                     ""
                   }
                   disabled
@@ -449,11 +418,7 @@ export default function PDV() {
                 />
               </div>
             )}
-<<<<<<< HEAD
             
-=======
-
->>>>>>> 327c551 (Subindo correções iniciais)
             {/* CPF na Nota (quando anônimo) */}
             {clienteId === "anonimo" && (
               <div>
@@ -655,19 +620,7 @@ export default function PDV() {
                     <Badge variant="outline">{venda.forma_pagamento.toUpperCase()}</Badge>
                   </TableCell>
                   <TableCell>
-<<<<<<< HEAD
                     <Badge variant={venda.status === "finalizada" ? "default" : "secondary"}>
-=======
-                    <Badge
-                      variant={
-                        venda.status === "finalizada"
-                          ? "default"
-                          : venda.status === "cancelada"
-                            ? "destructive"
-                            : "secondary"
-                      }
-                    >
->>>>>>> 327c551 (Subindo correções iniciais)
                       {venda.status}
                     </Badge>
                   </TableCell>
