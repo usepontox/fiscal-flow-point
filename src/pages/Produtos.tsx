@@ -5,13 +5,16 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Search, AlertTriangle } from "lucide-react";
+import { Plus, Search, AlertTriangle, Edit, Trash2 } from "lucide-react";
 import ProdutoForm from "@/components/ProdutoForm";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Produtos() {
   const [produtos, setProdutos] = useState<any[]>([]);
   const [busca, setBusca] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [produtoEditando, setProdutoEditando] = useState<any>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     loadProdutos();
@@ -29,6 +32,36 @@ export default function Produtos() {
     p.nome.toLowerCase().includes(busca.toLowerCase())
   );
 
+  const handleEditar = (produto: any) => {
+    setProdutoEditando(produto);
+    setDialogOpen(true);
+  };
+
+  const handleDeletar = async (id: string) => {
+    if (!confirm("Tem certeza que deseja deletar este produto?")) return;
+
+    const { error } = await supabase
+      .from("produtos")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      toast({
+        title: "Erro ao deletar produto",
+        description: error.message,
+        variant: "destructive"
+      });
+    } else {
+      toast({ title: "Produto deletado com sucesso!" });
+      loadProdutos();
+    }
+  };
+
+  const handleNovoClick = () => {
+    setProdutoEditando(null);
+    setDialogOpen(true);
+  };
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -43,7 +76,7 @@ export default function Produtos() {
           <h1 className="text-3xl font-bold">Produtos</h1>
           <p className="text-muted-foreground">Gestão de estoque e produtos</p>
         </div>
-        <Button className="gap-2" onClick={() => setDialogOpen(true)}>
+        <Button className="gap-2" onClick={handleNovoClick}>
           <Plus className="h-4 w-4" />
           Novo Produto
         </Button>
@@ -72,6 +105,7 @@ export default function Produtos() {
                 <TableHead>Custo</TableHead>
                 <TableHead>Preço Venda</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -95,6 +129,14 @@ export default function Produtos() {
                       {produto.ativo ? "Ativo" : "Inativo"}
                     </Badge>
                   </TableCell>
+                  <TableCell className="text-right">
+                    <Button variant="ghost" size="icon" onClick={() => handleEditar(produto)}>
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={() => handleDeletar(produto.id)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -106,6 +148,7 @@ export default function Produtos() {
         open={dialogOpen} 
         onOpenChange={setDialogOpen}
         onSuccess={loadProdutos}
+        produtoEditando={produtoEditando}
       />
     </div>
   );

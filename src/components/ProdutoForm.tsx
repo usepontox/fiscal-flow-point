@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,53 +8,114 @@ import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
+interface Produto {
+  id: string;
+  nome: string;
+  descricao?: string;
+  sku?: string;
+  codigo_barras?: string;
+  unidade: string;
+  custo: number;
+  preco_venda: number;
+  estoque_atual: number;
+  estoque_minimo: number;
+  ativo: boolean;
+}
+
 interface ProdutoFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
+  produtoEditando?: Produto | null;
 }
 
-export default function ProdutoForm({ open, onOpenChange, onSuccess }: ProdutoFormProps) {
+export default function ProdutoForm({ open, onOpenChange, onSuccess, produtoEditando }: ProdutoFormProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    nome: "",
-    descricao: "",
-    sku: "",
-    codigo_barras: "",
-    unidade: "UN",
-    custo: "",
-    preco_venda: "",
-    estoque_atual: "0",
-    estoque_minimo: "0",
-    ativo: true
+    nome: produtoEditando?.nome || "",
+    descricao: produtoEditando?.descricao || "",
+    sku: produtoEditando?.sku || "",
+    codigo_barras: produtoEditando?.codigo_barras || "",
+    unidade: produtoEditando?.unidade || "UN",
+    custo: produtoEditando?.custo?.toString() || "",
+    preco_venda: produtoEditando?.preco_venda?.toString() || "",
+    estoque_atual: produtoEditando?.estoque_atual?.toString() || "0",
+    estoque_minimo: produtoEditando?.estoque_minimo?.toString() || "0",
+    ativo: produtoEditando?.ativo ?? true
   });
+
+  // Atualizar form quando produtoEditando mudar
+  useEffect(() => {
+    if (produtoEditando) {
+      setFormData({
+        nome: produtoEditando.nome,
+        descricao: produtoEditando.descricao || "",
+        sku: produtoEditando.sku || "",
+        codigo_barras: produtoEditando.codigo_barras || "",
+        unidade: produtoEditando.unidade,
+        custo: produtoEditando.custo.toString(),
+        preco_venda: produtoEditando.preco_venda.toString(),
+        estoque_atual: produtoEditando.estoque_atual.toString(),
+        estoque_minimo: produtoEditando.estoque_minimo.toString(),
+        ativo: produtoEditando.ativo
+      });
+    } else {
+      setFormData({
+        nome: "",
+        descricao: "",
+        sku: "",
+        codigo_barras: "",
+        unidade: "UN",
+        custo: "",
+        preco_venda: "",
+        estoque_atual: "0",
+        estoque_minimo: "0",
+        ativo: true
+      });
+    }
+  }, [produtoEditando]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const { error } = await supabase
-        .from("produtos")
-        .insert({
-          nome: formData.nome,
-          descricao: formData.descricao || null,
-          sku: formData.sku || null,
-          codigo_barras: formData.codigo_barras || null,
-          unidade: formData.unidade,
-          custo: parseFloat(formData.custo) || 0,
-          preco_venda: parseFloat(formData.preco_venda) || 0,
-          estoque_atual: parseInt(formData.estoque_atual) || 0,
-          estoque_minimo: parseInt(formData.estoque_minimo) || 0,
-          ativo: formData.ativo
-        });
+      const dados = {
+        nome: formData.nome,
+        descricao: formData.descricao || null,
+        sku: formData.sku || null,
+        codigo_barras: formData.codigo_barras || null,
+        unidade: formData.unidade,
+        custo: parseFloat(formData.custo) || 0,
+        preco_venda: parseFloat(formData.preco_venda) || 0,
+        estoque_atual: parseInt(formData.estoque_atual) || 0,
+        estoque_minimo: parseInt(formData.estoque_minimo) || 0,
+        ativo: formData.ativo
+      };
+
+      let error;
+      
+      if (produtoEditando) {
+        const result = await supabase
+          .from("produtos")
+          .update(dados)
+          .eq("id", produtoEditando.id);
+        error = result.error;
+      } else {
+        const result = await supabase
+          .from("produtos")
+          .insert(dados);
+        error = result.error;
+      }
 
       if (error) throw error;
 
       toast({
-        title: "Produto cadastrado",
-        description: "O produto foi cadastrado com sucesso."
+        title: produtoEditando ? "Produto atualizado" : "Produto cadastrado",
+        description: produtoEditando 
+          ? "O produto foi atualizado com sucesso." 
+          : "O produto foi cadastrado com sucesso."
       });
 
       setFormData({
@@ -87,7 +148,7 @@ export default function ProdutoForm({ open, onOpenChange, onSuccess }: ProdutoFo
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Novo Produto</DialogTitle>
+          <DialogTitle>{produtoEditando ? "Editar Produto" : "Novo Produto"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
