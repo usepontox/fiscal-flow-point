@@ -1,0 +1,211 @@
+import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+
+interface ProdutoFormProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSuccess: () => void;
+}
+
+export default function ProdutoForm({ open, onOpenChange, onSuccess }: ProdutoFormProps) {
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    nome: "",
+    descricao: "",
+    sku: "",
+    codigo_barras: "",
+    unidade: "UN",
+    custo: "",
+    preco_venda: "",
+    estoque_atual: "0",
+    estoque_minimo: "0",
+    ativo: true
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const { error } = await supabase
+        .from("produtos")
+        .insert({
+          nome: formData.nome,
+          descricao: formData.descricao || null,
+          sku: formData.sku || null,
+          codigo_barras: formData.codigo_barras || null,
+          unidade: formData.unidade,
+          custo: parseFloat(formData.custo) || 0,
+          preco_venda: parseFloat(formData.preco_venda) || 0,
+          estoque_atual: parseInt(formData.estoque_atual) || 0,
+          estoque_minimo: parseInt(formData.estoque_minimo) || 0,
+          ativo: formData.ativo
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Produto cadastrado",
+        description: "O produto foi cadastrado com sucesso."
+      });
+
+      setFormData({
+        nome: "",
+        descricao: "",
+        sku: "",
+        codigo_barras: "",
+        unidade: "UN",
+        custo: "",
+        preco_venda: "",
+        estoque_atual: "0",
+        estoque_minimo: "0",
+        ativo: true
+      });
+
+      onSuccess();
+      onOpenChange(false);
+    } catch (error: any) {
+      toast({
+        title: "Erro ao cadastrar produto",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Novo Produto</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="col-span-2">
+              <Label htmlFor="nome">Nome *</Label>
+              <Input
+                id="nome"
+                value={formData.nome}
+                onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+                required
+              />
+            </div>
+            
+            <div className="col-span-2">
+              <Label htmlFor="descricao">Descrição</Label>
+              <Textarea
+                id="descricao"
+                value={formData.descricao}
+                onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="sku">SKU</Label>
+              <Input
+                id="sku"
+                value={formData.sku}
+                onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="codigo_barras">Código de Barras</Label>
+              <Input
+                id="codigo_barras"
+                value={formData.codigo_barras}
+                onChange={(e) => setFormData({ ...formData, codigo_barras: e.target.value })}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="unidade">Unidade *</Label>
+              <Input
+                id="unidade"
+                value={formData.unidade}
+                onChange={(e) => setFormData({ ...formData, unidade: e.target.value })}
+                required
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="custo">Custo (R$) *</Label>
+              <Input
+                id="custo"
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.custo}
+                onChange={(e) => setFormData({ ...formData, custo: e.target.value })}
+                required
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="preco_venda">Preço de Venda (R$) *</Label>
+              <Input
+                id="preco_venda"
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.preco_venda}
+                onChange={(e) => setFormData({ ...formData, preco_venda: e.target.value })}
+                required
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="estoque_atual">Estoque Atual</Label>
+              <Input
+                id="estoque_atual"
+                type="number"
+                min="0"
+                value={formData.estoque_atual}
+                onChange={(e) => setFormData({ ...formData, estoque_atual: e.target.value })}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="estoque_minimo">Estoque Mínimo</Label>
+              <Input
+                id="estoque_minimo"
+                type="number"
+                min="0"
+                value={formData.estoque_minimo}
+                onChange={(e) => setFormData({ ...formData, estoque_minimo: e.target.value })}
+              />
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="ativo"
+                checked={formData.ativo}
+                onCheckedChange={(checked) => setFormData({ ...formData, ativo: checked })}
+              />
+              <Label htmlFor="ativo">Produto Ativo</Label>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? "Salvando..." : "Cadastrar"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}

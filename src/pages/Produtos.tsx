@@ -6,10 +6,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { Plus, Search, AlertTriangle } from "lucide-react";
+import ProdutoForm from "@/components/ProdutoForm";
 
 export default function Produtos() {
   const [produtos, setProdutos] = useState<any[]>([]);
   const [busca, setBusca] = useState("");
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   useEffect(() => {
     loadProdutos();
@@ -41,7 +43,7 @@ export default function Produtos() {
           <h1 className="text-3xl font-bold">Produtos</h1>
           <p className="text-muted-foreground">Gestão de estoque e produtos</p>
         </div>
-        <Button className="gap-2">
+        <Button className="gap-2" onClick={() => setDialogOpen(true)}>
           <Plus className="h-4 w-4" />
           Novo Produto
         </Button>
@@ -99,6 +101,12 @@ export default function Produtos() {
           </Table>
         </CardContent>
       </Card>
+
+      <ProdutoForm 
+        open={dialogOpen} 
+        onOpenChange={setDialogOpen}
+        onSuccess={loadProdutos}
+      />
     </div>
   );
 }
