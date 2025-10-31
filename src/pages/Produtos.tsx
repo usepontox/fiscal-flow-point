@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { Plus, Search, AlertTriangle, Edit, Trash2, Upload } from "lucide-react";
 import ProdutoForm from "@/components/ProdutoForm";
@@ -16,6 +17,8 @@ export default function Produtos() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [produtoEditando, setProdutoEditando] = useState<any>(null);
   const { toast } = useToast();
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [dadosImportacao, setDadosImportacao] = useState<any[]>([]);
 
   useEffect(() => {
     loadProdutos();
@@ -74,19 +77,80 @@ export default function Produtos() {
         const workbook = XLSX.read(data, { type: "binary" });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
-        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+        const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet);
 
         if (jsonData.length === 0) {
           toast({ title: "Arquivo vazio", variant: "destructive" });
           return;
         }
 
-        toast({ title: `${jsonData.length} produtos encontrados. Importação em desenvolvimento.`, variant: "default" });
+        // Validar colunas obrigatórias
+        const primeiraLinha = jsonData[0];
+        const colunasNecessarias = ['nome', 'preco_venda', 'custo', 'estoque_atual'];
+        const colunasFaltando = colunasNecessarias.filter(col => 
+          !Object.keys(primeiraLinha).some(key => key.toLowerCase() === col)
+        );
+
+        if (colunasFaltando.length > 0) {
+          toast({ 
+            title: "Colunas obrigatórias faltando", 
+            description: `Faltam: ${colunasFaltando.join(', ')}`,
+            variant: "destructive" 
+          });
+          return;
+        }
+
+        // Normalizar nomes de colunas
+        const dadosNormalizados = jsonData.map(item => {
+          const normalizado: any = {};
+          Object.keys(item).forEach(key => {
+            const keyNormalizada = key.toLowerCase().trim();
+            normalizado[keyNormalizada] = item[key];
+          });
+          return normalizado;
+        });
+
+        setDadosImportacao(dadosNormalizados);
+        setImportDialogOpen(true);
       } catch (error) {
         toast({ title: "Erro ao ler arquivo", variant: "destructive" });
       }
     };
     reader.readAsBinaryString(file);
+    e.target.value = ''; // Reset input
+  };
+
+  const confirmarImportacao = async () => {
+    try {
+      const produtosParaInserir = dadosImportacao.map(item => ({
+        nome: item.nome,
+        preco_venda: parseFloat(item.preco_venda) || 0,
+        custo: parseFloat(item.custo) || 0,
+        estoque_atual: parseInt(item.estoque_atual) || 0,
+        estoque_minimo: parseInt(item.estoque_minimo) || 0,
+        descricao: item.descricao || null,
+        codigo_barras: item.codigo_barras || null,
+        sku: item.sku || null,
+        ativo: true,
+      }));
+
+      const { error } = await supabase
+        .from('produtos')
+        .insert(produtosParaInserir);
+
+      if (error) throw error;
+
+      toast({ title: `${produtosParaInserir.length} produtos importados com sucesso!` });
+      setImportDialogOpen(false);
+      setDadosImportacao([]);
+      loadProdutos();
+    } catch (error: any) {
+      toast({ 
+        title: "Erro ao importar produtos", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    }
   };
 
   const formatCurrency = (value: number) => {
@@ -190,6 +254,53 @@ export default function Produtos() {
         onSuccess={loadProdutos}
         produtoEditando={produtoEditando}
       />
+
+      {/* Dialog Importação Excel */}
+      <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Pré-visualização da Importação</DialogTitle>
+            <DialogDescription>
+              {dadosImportacao.length} produtos encontrados. Revise antes de confirmar.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-96 overflow-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Preço Venda</TableHead>
+                  <TableHead>Custo</TableHead>
+                  <TableHead>Estoque</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {dadosImportacao.slice(0, 10).map((item, idx) => (
+                  <TableRow key={idx}>
+                    <TableCell>{item.nome}</TableCell>
+                    <TableCell>{formatCurrency(parseFloat(item.preco_venda) || 0)}</TableCell>
+                    <TableCell>{formatCurrency(parseFloat(item.custo) || 0)}</TableCell>
+                    <TableCell>{item.estoque_atual}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            {dadosImportacao.length > 10 && (
+              <p className="text-center text-sm text-muted-foreground mt-2">
+                ... e mais {dadosImportacao.length - 10} produtos
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setImportDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={confirmarImportacao}>
+              Confirmar Importação
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

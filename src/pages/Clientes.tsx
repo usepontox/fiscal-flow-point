@@ -8,6 +8,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label";
 import { Plus, Search, Edit, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import InputMask from "react-input-mask";
+import { masks } from "@/lib/masks";
 
 interface Cliente {
   id: string;
@@ -188,27 +190,33 @@ export default function Clientes() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="cpf">CPF</Label>
-                <Input
-                  id="cpf"
+                <InputMask
+                  mask={masks.cpf}
                   value={formData.cpf}
                   onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
-                />
+                >
+                  {(inputProps: any) => <Input {...inputProps} id="cpf" placeholder="000.000.000-00" />}
+                </InputMask>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="cnpj">CNPJ</Label>
-                <Input
-                  id="cnpj"
+                <InputMask
+                  mask={masks.cnpj}
                   value={formData.cnpj}
                   onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
-                />
+                >
+                  {(inputProps: any) => <Input {...inputProps} id="cnpj" placeholder="00.000.000/0000-00" />}
+                </InputMask>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="telefone">Telefone</Label>
-                <Input
-                  id="telefone"
+                <InputMask
+                  mask={masks.telefone}
                   value={formData.telefone}
                   onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
-                />
+                >
+                  {(inputProps: any) => <Input {...inputProps} id="telefone" placeholder="(00) 00000-0000" />}
+                </InputMask>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="limite_credito">Limite de Crédito</Label>
@@ -247,11 +255,13 @@ export default function Clientes() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="cep">CEP</Label>
-                <Input
-                  id="cep"
+                <InputMask
+                  mask={masks.cep}
                   value={formData.cep}
                   onChange={(e) => setFormData({ ...formData, cep: e.target.value })}
-                />
+                >
+                  {(inputProps: any) => <Input {...inputProps} id="cep" placeholder="00000-000" />}
+                </InputMask>
               </div>
             </div>
             <DialogFooter>

@@ -132,4 +132,33 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Melhorias de hover para botões e menus */
+  button:hover,
+  a:hover {
+    @apply transition-all duration-200;
+  }
+
+  /* Melhor contraste nos botões */
+  .hover\:bg-accent:hover {
+    background-color: hsl(var(--accent) / 0.9);
+  }
+
+  .hover\:bg-primary:hover {
+    background-color: hsl(var(--primary-hover));
+  }
+
+  .hover\:bg-destructive:hover {
+    background-color: hsl(var(--destructive) / 0.9);
+  }
+
+  /* Melhor contraste nos botões ghost */
+  button[class*="ghost"]:hover {
+    background-color: hsl(var(--accent) / 0.1);
+  }
+
+  /* Melhor contraste nos links da sidebar */
+  nav a:hover {
+    background-color: hsl(var(--sidebar-accent));
+  }
 }
