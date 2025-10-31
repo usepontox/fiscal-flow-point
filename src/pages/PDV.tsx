@@ -476,7 +476,20 @@ export default function PDV() {
                                   <TooltipContent>Diminuir quantidade</TooltipContent>
                                 </Tooltip>
                               </TooltipProvider>
-                              <span className="w-6 text-center text-xs">{item.quantidade}</span>
+                              <Input
+                                type="number"
+                                min="1"
+                                value={item.quantidade}
+                                onChange={(e) => {
+                                  const novaQtd = parseInt(e.target.value) || 1;
+                                  setCarrinho(carrinho.map(i =>
+                                    i.produto.id === item.produto.id
+                                      ? { ...i, quantidade: novaQtd, subtotal: novaQtd * i.preco_unitario }
+                                      : i
+                                  ));
+                                }}
+                                className="w-12 h-6 text-center text-xs p-0"
+                              />
                               <TooltipProvider>
                                 <Tooltip>
                                   <TooltipTrigger asChild>

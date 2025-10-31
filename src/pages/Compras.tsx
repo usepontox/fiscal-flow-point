@@ -42,6 +42,10 @@ export default function Compras() {
   const [numeroNota, setNumeroNota] = useState("");
   const [itens, setItens] = useState<ItemCompra[]>([]);
   const [loading, setLoading] = useState(false);
+  
+  // Produto manual
+  const [produtoManualOpen, setProdutoManualOpen] = useState(false);
+  const [produtoManual, setProdutoManual] = useState({ nome: "", preco: "", quantidade: "1" });
 
   useEffect(() => {
     loadProdutos();
@@ -151,6 +155,38 @@ export default function Compras() {
     }
   };
 
+  const adicionarProdutoManual = () => {
+    if (!produtoManual.nome || !produtoManual.preco || !produtoManual.quantidade) {
+      toast({ title: "Preencha todos os campos", variant: "destructive" });
+      return;
+    }
+
+    const preco = parseFloat(produtoManual.preco);
+    const quantidade = parseInt(produtoManual.quantidade);
+
+    if (isNaN(preco) || isNaN(quantidade) || preco <= 0 || quantidade <= 0) {
+      toast({ title: "Valores inválidos", variant: "destructive" });
+      return;
+    }
+
+    const produtoTemp: Produto = {
+      id: `manual-${Date.now()}`,
+      nome: produtoManual.nome,
+      custo: preco,
+    };
+
+    setItens([...itens, {
+      produto: produtoTemp,
+      quantidade,
+      preco_unitario: preco,
+      subtotal: preco * quantidade,
+    }]);
+
+    setProdutoManual({ nome: "", preco: "", quantidade: "1" });
+    setProdutoManualOpen(false);
+    toast({ title: "Produto adicionado!" });
+  };
+
   const alterarQuantidade = (produtoId: string, delta: number) => {
     setItens(itens.map(item => {
       if (item.produto.id === produtoId) {
@@ -220,8 +256,12 @@ export default function Compras() {
 
       if (compraError) throw compraError;
 
-      // Criar itens da compra (apenas produtos reais)
-      const itensReais = itens.filter(item => !item.produto.id.startsWith("temp-"));
+      // Criar itens da compra (apenas produtos reais, não manuais/temporários)
+      const itensReais = itens.filter(item => 
+        !item.produto.id.startsWith("temp-") && 
+        !item.produto.id.startsWith("manual-")
+      );
+      
       if (itensReais.length > 0) {
         const itensCompra = itensReais.map(item => ({
           compra_id: compra.id,
@@ -238,9 +278,14 @@ export default function Compras() {
         if (itensError) throw itensError;
       }
 
+      const produtosManuais = itens.filter(item => 
+        item.produto.id.startsWith("manual-") || 
+        item.produto.id.startsWith("temp-")
+      );
+
       toast({
         title: "Compra registrada com sucesso!",
-        description: `Total: ${formatCurrency(total)}`,
+        description: `Total: ${formatCurrency(total)}${produtosManuais.length > 0 ? ` (${produtosManuais.length} produto(s) manual/novo não cadastrado)` : ""}`,
       });
 
       // Limpar formulário
@@ -349,7 +394,20 @@ export default function Compras() {
             <div className="grid grid-cols-2 gap-4">
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">Produtos Disponíveis</CardTitle>
+                  <div className="flex items-center justify-between mb-2">
+                    <CardTitle className="text-lg">Produtos Disponíveis</CardTitle>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button size="sm" variant="outline" onClick={() => setProdutoManualOpen(true)}>
+                            <Plus className="h-4 w-4 mr-1" />
+                            Manual
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Adicionar produto não cadastrado</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
                   <div className="relative">
                     <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -401,7 +459,7 @@ export default function Compras() {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Produto</TableHead>
-                          <TableHead className="w-24">Qtd</TableHead>
+                          <TableHead className="w-32">Qtd</TableHead>
                           <TableHead className="w-32">Preço</TableHead>
                           <TableHead className="w-24">Total</TableHead>
                           <TableHead className="w-10"></TableHead>
@@ -412,7 +470,7 @@ export default function Compras() {
                           <TableRow key={item.produto.id}>
                             <TableCell className="text-xs">
                               {item.produto.nome}
-                              {item.produto.id.startsWith("temp-") && (
+                              {(item.produto.id.startsWith("temp-") || item.produto.id.startsWith("manual-")) && (
                                 <Badge variant="outline" className="ml-2 bg-yellow-100 text-xs">
                                   Novo
                                 </Badge>
@@ -428,7 +486,20 @@ export default function Compras() {
                                 >
                                   <Minus className="h-3 w-3" />
                                 </Button>
-                                <span className="w-6 text-center text-xs">{item.quantidade}</span>
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  value={item.quantidade}
+                                  onChange={(e) => {
+                                    const novaQtd = parseInt(e.target.value) || 1;
+                                    setItens(itens.map(i =>
+                                      i.produto.id === item.produto.id
+                                        ? { ...i, quantidade: novaQtd, subtotal: novaQtd * i.preco_unitario }
+                                        : i
+                                    ));
+                                  }}
+                                  className="w-12 h-6 text-center text-xs p-0"
+                                />
                                 <Button
                                   size="icon"
                                   variant="outline"
@@ -487,6 +558,51 @@ export default function Compras() {
                 size="lg"
               >
                 {loading ? "Processando..." : "Finalizar Compra"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Produto Manual */}
+      <Dialog open={produtoManualOpen} onOpenChange={setProdutoManualOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Adicionar Produto Manual</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Nome do Produto *</Label>
+              <Input
+                value={produtoManual.nome}
+                onChange={(e) => setProdutoManual({ ...produtoManual, nome: e.target.value })}
+                placeholder="Ex: Produto Avulso"
+              />
+            </div>
+            <div>
+              <Label>Preço Unitário (R$) *</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={produtoManual.preco}
+                onChange={(e) => setProdutoManual({ ...produtoManual, preco: e.target.value })}
+                placeholder="0.00"
+              />
+            </div>
+            <div>
+              <Label>Quantidade *</Label>
+              <Input
+                type="number"
+                value={produtoManual.quantidade}
+                onChange={(e) => setProdutoManual({ ...produtoManual, quantidade: e.target.value })}
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setProdutoManualOpen(false)} className="flex-1">
+                Cancelar
+              </Button>
+              <Button onClick={adicionarProdutoManual} className="flex-1">
+                Adicionar
               </Button>
             </div>
           </div>
