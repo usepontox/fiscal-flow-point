@@ -5,8 +5,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { DollarSign, TrendingUp, TrendingDown, Calendar } from "lucide-react";
+import { DollarSign, TrendingUp, TrendingDown, Calendar, Plus, Edit, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import ContaDialog from "@/components/ContaDialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface ContaReceber {
   id: string;
@@ -31,6 +42,11 @@ export default function Financeiro() {
   const [contasReceber, setContasReceber] = useState<ContaReceber[]>([]);
   const [contasPagar, setContasPagar] = useState<ContaPagar[]>([]);
   const { toast } = useToast();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogTipo, setDialogTipo] = useState<"receber" | "pagar">("receber");
+  const [contaEditando, setContaEditando] = useState<any>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [contaDeletar, setContaDeletar] = useState<{ id: string; tipo: "receber" | "pagar" } | null>(null);
 
   const [stats, setStats] = useState({
     totalReceber: 0,
@@ -89,6 +105,40 @@ export default function Financeiro() {
       toast({ title: "Conta marcada como paga!" });
       carregarDados();
     }
+  };
+
+  const handleNovaConta = (tipo: "receber" | "pagar") => {
+    setContaEditando(null);
+    setDialogTipo(tipo);
+    setDialogOpen(true);
+  };
+
+  const handleEditarConta = (conta: any, tipo: "receber" | "pagar") => {
+    setContaEditando(conta);
+    setDialogTipo(tipo);
+    setDialogOpen(true);
+  };
+
+  const handleDeletarConta = (id: string, tipo: "receber" | "pagar") => {
+    setContaDeletar({ id, tipo });
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmarDeletar = async () => {
+    if (!contaDeletar) return;
+
+    const tabela = contaDeletar.tipo === "receber" ? "contas_receber" : "contas_pagar";
+    const { error } = await supabase.from(tabela).delete().eq("id", contaDeletar.id);
+
+    if (error) {
+      toast({ title: "Erro ao deletar conta", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Conta deletada com sucesso!" });
+      carregarDados();
+    }
+
+    setDeleteDialogOpen(false);
+    setContaDeletar(null);
   };
 
   const formatCurrency = (value: number) => {
@@ -174,8 +224,16 @@ export default function Financeiro() {
         <TabsContent value="receber" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Contas a Receber</CardTitle>
-              <CardDescription>Valores a serem recebidos de clientes</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Contas a Receber</CardTitle>
+                  <CardDescription>Valores a serem recebidos de clientes</CardDescription>
+                </div>
+                <Button onClick={() => handleNovaConta("receber")}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Nova Conta
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               <Table>
@@ -199,12 +257,46 @@ export default function Financeiro() {
                       <TableCell>{getStatusBadge(conta.status, conta.data_vencimento)}</TableCell>
                       <TableCell className="text-right">
                         {conta.status === "pendente" && (
-                          <Button
-                            size="sm"
-                            onClick={() => marcarComoPago(conta.id, "receber")}
-                          >
-                            Marcar como Pago
-                          </Button>
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEditarConta(conta, "receber")}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={() => marcarComoPago(conta.id, "receber")}
+                            >
+                              Pagar
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleDeletarConta(conta.id, "receber")}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )}
+                        {conta.status === "pago" && (
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEditarConta(conta, "receber")}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleDeletarConta(conta.id, "receber")}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         )}
                       </TableCell>
                     </TableRow>
@@ -218,8 +310,16 @@ export default function Financeiro() {
         <TabsContent value="pagar" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Contas a Pagar</CardTitle>
-              <CardDescription>Valores a serem pagos a fornecedores</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Contas a Pagar</CardTitle>
+                  <CardDescription>Valores a serem pagos a fornecedores</CardDescription>
+                </div>
+                <Button onClick={() => handleNovaConta("pagar")}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Nova Conta
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               <Table>
@@ -245,12 +345,46 @@ export default function Financeiro() {
                       <TableCell>{getStatusBadge(conta.status, conta.data_vencimento)}</TableCell>
                       <TableCell className="text-right">
                         {conta.status === "pendente" && (
-                          <Button
-                            size="sm"
-                            onClick={() => marcarComoPago(conta.id, "pagar")}
-                          >
-                            Marcar como Pago
-                          </Button>
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEditarConta(conta, "pagar")}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={() => marcarComoPago(conta.id, "pagar")}
+                            >
+                              Pagar
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleDeletarConta(conta.id, "pagar")}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )}
+                        {conta.status === "pago" && (
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEditarConta(conta, "pagar")}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleDeletarConta(conta.id, "pagar")}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         )}
                       </TableCell>
                     </TableRow>
@@ -261,6 +395,29 @@ export default function Financeiro() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <ContaDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        onSuccess={carregarDados}
+        tipo={dialogTipo}
+        conta={contaEditando}
+      />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja deletar esta conta? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmarDeletar}>Deletar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

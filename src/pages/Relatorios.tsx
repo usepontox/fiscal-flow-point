@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { FileText, Download, Calendar } from "lucide-react";
+import * as XLSX from "xlsx";
 
 export default function Relatorios() {
   const { toast } = useToast();
@@ -151,22 +152,25 @@ export default function Relatorios() {
     });
   };
 
-  const exportarCSV = (dados: any[], nome: string) => {
+  const exportarExcel = (dados: any[], nome: string, colunas: { header: string; key: string }[]) => {
     if (dados.length === 0) {
       toast({ title: "Não há dados para exportar", variant: "destructive" });
       return;
     }
 
-    const headers = Object.keys(dados[0]).join(",");
-    const rows = dados.map(row => Object.values(row).join(",")).join("\n");
-    const csv = `${headers}\n${rows}`;
+    const dadosFormatados = dados.map((item) => {
+      const row: any = {};
+      colunas.forEach((col) => {
+        row[col.header] = item[col.key];
+      });
+      return row;
+    });
 
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${nome}_${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
+    const worksheet = XLSX.utils.json_to_sheet(dadosFormatados);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Relatório");
+    
+    XLSX.writeFile(workbook, `${nome}_${new Date().toISOString().split('T')[0]}.xlsx`);
     
     toast({ title: "Relatório exportado com sucesso!" });
   };
@@ -219,10 +223,28 @@ export default function Relatorios() {
                   {relatorioVendas.length > 0 && (
                     <Button
                       variant="outline"
-                      onClick={() => exportarCSV(relatorioVendas, "relatorio_vendas")}
+                      onClick={() => exportarExcel(
+                        relatorioVendas.map(v => ({
+                          numero_venda: v.numero_venda,
+                          data_venda: formatDate(v.data_venda),
+                          cliente: v.clientes?.nome || "Anônimo",
+                          forma_pagamento: v.forma_pagamento,
+                          total: formatCurrency(v.total),
+                          status: v.status,
+                        })),
+                        "relatorio_vendas",
+                        [
+                          { header: "Nº Venda", key: "numero_venda" },
+                          { header: "Data/Hora", key: "data_venda" },
+                          { header: "Cliente", key: "cliente" },
+                          { header: "Forma Pagamento", key: "forma_pagamento" },
+                          { header: "Total (R$)", key: "total" },
+                          { header: "Status", key: "status" },
+                        ]
+                      )}
                     >
                       <Download className="mr-2 h-4 w-4" />
-                      Exportar
+                      Exportar Excel
                     </Button>
                   )}
                 </div>
@@ -275,10 +297,24 @@ export default function Relatorios() {
                   {relatorioProdutos.length > 0 && (
                     <Button
                       variant="outline"
-                      onClick={() => exportarCSV(relatorioProdutos, "produtos_mais_vendidos")}
+                      onClick={() => exportarExcel(
+                        relatorioProdutos.map(p => ({
+                          nome: p.nome,
+                          quantidade: p.quantidade,
+                          precoMedio: formatCurrency(p.precoMedio),
+                          total: formatCurrency(p.total),
+                        })),
+                        "produtos_mais_vendidos",
+                        [
+                          { header: "Produto", key: "nome" },
+                          { header: "Quantidade Vendida", key: "quantidade" },
+                          { header: "Preço Médio (R$)", key: "precoMedio" },
+                          { header: "Total (R$)", key: "total" },
+                        ]
+                      )}
                     >
                       <Download className="mr-2 h-4 w-4" />
-                      Exportar
+                      Exportar Excel
                     </Button>
                   )}
                 </div>
@@ -291,8 +327,8 @@ export default function Relatorios() {
                     <TableRow>
                       <TableHead>Produto</TableHead>
                       <TableHead className="text-right">Quantidade Vendida</TableHead>
-                      <TableHead className="text-right">Preço Médio</TableHead>
-                      <TableHead className="text-right">Total</TableHead>
+                      <TableHead className="text-right">Preço Médio (R$)</TableHead>
+                      <TableHead className="text-right">Total (R$)</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -334,10 +370,28 @@ export default function Relatorios() {
                   {relatorioEstoque.length > 0 && (
                     <Button
                       variant="outline"
-                      onClick={() => exportarCSV(relatorioEstoque, "relatorio_estoque")}
+                      onClick={() => exportarExcel(
+                        relatorioEstoque.map(p => ({
+                          nome: p.nome,
+                          estoque_atual: p.estoque_atual,
+                          estoque_minimo: p.estoque_minimo,
+                          custo: formatCurrency(p.custo),
+                          preco_venda: formatCurrency(p.preco_venda),
+                          total_estoque: formatCurrency(p.estoque_atual * p.custo),
+                        })),
+                        "relatorio_estoque",
+                        [
+                          { header: "Produto", key: "nome" },
+                          { header: "Estoque Atual (Un)", key: "estoque_atual" },
+                          { header: "Estoque Mínimo (Un)", key: "estoque_minimo" },
+                          { header: "Custo (R$)", key: "custo" },
+                          { header: "Preço Venda (R$)", key: "preco_venda" },
+                          { header: "Total em Estoque (R$)", key: "total_estoque" },
+                        ]
+                      )}
                     >
                       <Download className="mr-2 h-4 w-4" />
-                      Exportar
+                      Exportar Excel
                     </Button>
                   )}
                 </div>
@@ -349,11 +403,11 @@ export default function Relatorios() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Produto</TableHead>
-                      <TableHead className="text-right">Estoque Atual</TableHead>
-                      <TableHead className="text-right">Estoque Mínimo</TableHead>
-                      <TableHead className="text-right">Custo</TableHead>
-                      <TableHead className="text-right">Preço Venda</TableHead>
-                      <TableHead className="text-right">Total em Estoque</TableHead>
+                      <TableHead className="text-right">Estoque Atual (Un)</TableHead>
+                      <TableHead className="text-right">Estoque Mínimo (Un)</TableHead>
+                      <TableHead className="text-right">Custo (R$)</TableHead>
+                      <TableHead className="text-right">Preço Venda (R$)</TableHead>
+                      <TableHead className="text-right">Total em Estoque (R$)</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>

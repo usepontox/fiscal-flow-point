@@ -5,9 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Search, AlertTriangle, Edit, Trash2 } from "lucide-react";
+import { Plus, Search, AlertTriangle, Edit, Trash2, Upload } from "lucide-react";
 import ProdutoForm from "@/components/ProdutoForm";
 import { useToast } from "@/hooks/use-toast";
+import * as XLSX from "xlsx";
 
 export default function Produtos() {
   const [produtos, setProdutos] = useState<any[]>([]);
@@ -62,6 +63,32 @@ export default function Produtos() {
     setDialogOpen(true);
   };
 
+  const handleImportarExcel = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      try {
+        const data = evt.target?.result;
+        const workbook = XLSX.read(data, { type: "binary" });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+        if (jsonData.length === 0) {
+          toast({ title: "Arquivo vazio", variant: "destructive" });
+          return;
+        }
+
+        toast({ title: `${jsonData.length} produtos encontrados. Importação em desenvolvimento.`, variant: "default" });
+      } catch (error) {
+        toast({ title: "Erro ao ler arquivo", variant: "destructive" });
+      }
+    };
+    reader.readAsBinaryString(file);
+  };
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -76,10 +103,23 @@ export default function Produtos() {
           <h1 className="text-3xl font-bold">Produtos</h1>
           <p className="text-muted-foreground">Gestão de estoque e produtos</p>
         </div>
-        <Button className="gap-2" onClick={handleNovoClick}>
-          <Plus className="h-4 w-4" />
-          Novo Produto
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" className="gap-2" onClick={() => document.getElementById('file-upload')?.click()}>
+            <Upload className="h-4 w-4" />
+            Importar Excel
+          </Button>
+          <input
+            id="file-upload"
+            type="file"
+            accept=".xlsx,.xls"
+            onChange={handleImportarExcel}
+            className="hidden"
+          />
+          <Button className="gap-2" onClick={handleNovoClick}>
+            <Plus className="h-4 w-4" />
+            Novo Produto
+          </Button>
+        </div>
       </div>
 
       <Card>

@@ -8,8 +8,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Plus, Minus, Trash2, ShoppingCart, Receipt, Clock } from "lucide-react";
+import { Search, Plus, Minus, Trash2, ShoppingCart, Receipt, Clock, Edit2, DollarSign } from "lucide-react";
 import CupomFiscal from "@/components/CupomFiscal";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import InputMask from "react-input-mask";
+import { masks } from "@/lib/masks";
 
 interface Produto {
   id: string;
@@ -21,6 +24,7 @@ interface Produto {
 interface ItemVenda {
   produto: Produto;
   quantidade: number;
+  preco_unitario: number;
   subtotal: number;
 }
 
@@ -45,11 +49,19 @@ export default function PDV() {
   const [busca, setBusca] = useState("");
   const [carrinho, setCarrinho] = useState<ItemVenda[]>([]);
   const [clienteId, setClienteId] = useState<string>("anonimo");
+  const [cpfNota, setCpfNota] = useState("");
   const [formaPagamento, setFormaPagamento] = useState<string>("dinheiro");
   const [loading, setLoading] = useState(false);
   const [vendasRecentes, setVendasRecentes] = useState<VendaRecente[]>([]);
   const [cupomVendaId, setCupomVendaId] = useState<string | null>(null);
   const [cupomOpen, setCupomOpen] = useState(false);
+  
+  // Produto manual
+  const [produtoManualOpen, setProdutoManualOpen] = useState(false);
+  const [produtoManual, setProdutoManual] = useState({ nome: "", preco: "", quantidade: "1" });
+  
+  // Editar preço
+  const [editandoPreco, setEditandoPreco] = useState<{ id: string; preco: string } | null>(null);
 
   useEffect(() => {
     loadProdutos();
@@ -61,8 +73,7 @@ export default function PDV() {
     const { data } = await supabase
       .from("produtos")
       .select("id, nome, preco_venda, estoque_atual")
-      .eq("ativo", true)
-      .gt("estoque_atual", 0);
+      .eq("ativo", true);
 
     if (data) setProdutos(data);
   };
@@ -99,25 +110,56 @@ export default function PDV() {
     const itemExistente = carrinho.find(item => item.produto.id === produto.id);
 
     if (itemExistente) {
-      if (itemExistente.quantidade >= produto.estoque_atual) {
-        toast({
-          title: "Estoque insuficiente",
-          variant: "destructive",
-        });
-        return;
-      }
       setCarrinho(carrinho.map(item =>
         item.produto.id === produto.id
-          ? { ...item, quantidade: item.quantidade + 1, subtotal: (item.quantidade + 1) * produto.preco_venda }
+          ? { 
+              ...item, 
+              quantidade: item.quantidade + 1, 
+              subtotal: (item.quantidade + 1) * item.preco_unitario 
+            }
           : item
       ));
     } else {
       setCarrinho([...carrinho, {
         produto,
         quantidade: 1,
+        preco_unitario: produto.preco_venda,
         subtotal: produto.preco_venda,
       }]);
     }
+  };
+
+  const adicionarProdutoManual = () => {
+    if (!produtoManual.nome || !produtoManual.preco || !produtoManual.quantidade) {
+      toast({ title: "Preencha todos os campos", variant: "destructive" });
+      return;
+    }
+
+    const preco = parseFloat(produtoManual.preco);
+    const quantidade = parseInt(produtoManual.quantidade);
+
+    if (isNaN(preco) || isNaN(quantidade) || preco <= 0 || quantidade <= 0) {
+      toast({ title: "Valores inválidos", variant: "destructive" });
+      return;
+    }
+
+    const produtoTemp: Produto = {
+      id: `manual-${Date.now()}`,
+      nome: produtoManual.nome,
+      preco_venda: preco,
+      estoque_atual: 9999,
+    };
+
+    setCarrinho([...carrinho, {
+      produto: produtoTemp,
+      quantidade,
+      preco_unitario: preco,
+      subtotal: preco * quantidade,
+    }]);
+
+    setProdutoManual({ nome: "", preco: "", quantidade: "1" });
+    setProdutoManualOpen(false);
+    toast({ title: "Produto adicionado ao carrinho!" });
   };
 
   const alterarQuantidade = (produtoId: string, delta: number) => {
@@ -125,18 +167,44 @@ export default function PDV() {
       if (item.produto.id === produtoId) {
         const novaQuantidade = item.quantidade + delta;
         if (novaQuantidade <= 0) return item;
-        if (novaQuantidade > item.produto.estoque_atual) {
-          toast({ title: "Estoque insuficiente", variant: "destructive" });
-          return item;
-        }
         return {
           ...item,
           quantidade: novaQuantidade,
-          subtotal: novaQuantidade * item.produto.preco_venda,
+          subtotal: novaQuantidade * item.preco_unitario,
         };
       }
       return item;
     }));
+  };
+
+  const alterarPreco = (produtoId: string) => {
+    const item = carrinho.find(i => i.produto.id === produtoId);
+    if (item) {
+      setEditandoPreco({ id: produtoId, preco: item.preco_unitario.toString() });
+    }
+  };
+
+  const salvarPreco = () => {
+    if (!editandoPreco) return;
+
+    const novoPreco = parseFloat(editandoPreco.preco);
+    if (isNaN(novoPreco) || novoPreco <= 0) {
+      toast({ title: "Preço inválido", variant: "destructive" });
+      return;
+    }
+
+    setCarrinho(carrinho.map(item =>
+      item.produto.id === editandoPreco.id
+        ? { 
+            ...item, 
+            preco_unitario: novoPreco, 
+            subtotal: item.quantidade * novoPreco 
+          }
+        : item
+    ));
+
+    setEditandoPreco(null);
+    toast({ title: "Preço atualizado!" });
   };
 
   const removerItem = (produtoId: string) => {
@@ -179,24 +247,27 @@ export default function PDV() {
 
       if (vendaError) throw vendaError;
 
-      // Criar itens da venda
-      const itens = carrinho.map(item => ({
-        venda_id: venda.id,
-        produto_id: item.produto.id,
-        quantidade: item.quantidade,
-        preco_unitario: item.produto.preco_venda,
-        subtotal: item.subtotal,
-      }));
+      // Criar itens da venda (apenas para produtos reais, não manuais)
+      const itensReais = carrinho.filter(item => !item.produto.id.startsWith("manual-"));
+      if (itensReais.length > 0) {
+        const itens = itensReais.map(item => ({
+          venda_id: venda.id,
+          produto_id: item.produto.id,
+          quantidade: item.quantidade,
+          preco_unitario: item.preco_unitario,
+          subtotal: item.subtotal,
+        }));
 
-      const { error: itensError } = await supabase
-        .from("vendas_itens")
-        .insert(itens);
+        const { error: itensError } = await supabase
+          .from("vendas_itens")
+          .insert(itens);
 
-      if (itensError) throw itensError;
+        if (itensError) throw itensError;
+      }
 
       toast({
         title: "Venda finalizada!",
-        description: `Total: ${formatCurrency(total)}`,
+        description: `Total: ${formatCurrency(total)}${cpfNota ? ` - CPF: ${cpfNota}` : ""}`,
       });
 
       // Mostrar cupom automaticamente
@@ -205,6 +276,7 @@ export default function PDV() {
 
       setCarrinho([]);
       setClienteId("anonimo");
+      setCpfNota("");
       loadProdutos();
       loadVendasRecentes();
     } catch (error: any) {
@@ -250,7 +322,13 @@ export default function PDV() {
         {/* Produtos */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Produtos</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg">Produtos</CardTitle>
+              <Button size="sm" variant="outline" onClick={() => setProdutoManualOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Produto Manual
+              </Button>
+            </div>
             <div className="relative mt-2">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
@@ -317,11 +395,25 @@ export default function PDV() {
               </Select>
             </div>
 
+            {/* CPF na Nota */}
+            <div>
+              <Label className="text-xs">CPF na Nota (opcional)</Label>
+              <InputMask
+                mask={masks.cpf}
+                value={cpfNota}
+                onChange={(e) => setCpfNota(e.target.value)}
+              >
+                {(inputProps: any) => (
+                  <Input {...inputProps} placeholder="000.000.000-00" className="mt-1" />
+                )}
+              </InputMask>
+            </div>
+
             {/* Itens do Carrinho */}
             <div className="border rounded-lg">
-              <div className="max-h-[calc(100vh-520px)] min-h-[200px] overflow-auto">
+              <div className="max-h-[calc(100vh-600px)] min-h-[150px] overflow-auto">
                 {carrinho.length === 0 ? (
-                  <div className="flex items-center justify-center h-[200px] text-muted-foreground text-sm">
+                  <div className="flex items-center justify-center h-[150px] text-muted-foreground text-sm">
                     Carrinho vazio
                   </div>
                 ) : (
@@ -330,6 +422,7 @@ export default function PDV() {
                       <TableRow>
                         <TableHead className="text-xs">Produto</TableHead>
                         <TableHead className="text-xs text-center w-24">Qtd</TableHead>
+                        <TableHead className="text-xs text-right w-24">Preço</TableHead>
                         <TableHead className="text-xs text-right w-20">Total</TableHead>
                         <TableHead className="w-10"></TableHead>
                       </TableRow>
@@ -360,6 +453,17 @@ export default function PDV() {
                                 <Plus className="h-3 w-3" />
                               </Button>
                             </div>
+                          </TableCell>
+                          <TableCell className="text-xs text-right py-2">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-6 w-6 mr-1"
+                              onClick={() => alterarPreco(item.produto.id)}
+                            >
+                              <Edit2 className="h-3 w-3" />
+                            </Button>
+                            {formatCurrency(item.preco_unitario)}
                           </TableCell>
                           <TableCell className="text-xs text-right py-2 font-semibold">
                             {formatCurrency(item.subtotal)}
@@ -469,6 +573,80 @@ export default function PDV() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Dialog Produto Manual */}
+      <Dialog open={produtoManualOpen} onOpenChange={setProdutoManualOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Adicionar Produto Manual</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Nome do Produto</Label>
+              <Input
+                value={produtoManual.nome}
+                onChange={(e) => setProdutoManual({ ...produtoManual, nome: e.target.value })}
+                placeholder="Ex: Produto Avulso"
+              />
+            </div>
+            <div>
+              <Label>Preço Unitário (R$)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={produtoManual.preco}
+                onChange={(e) => setProdutoManual({ ...produtoManual, preco: e.target.value })}
+                placeholder="0.00"
+              />
+            </div>
+            <div>
+              <Label>Quantidade</Label>
+              <Input
+                type="number"
+                value={produtoManual.quantidade}
+                onChange={(e) => setProdutoManual({ ...produtoManual, quantidade: e.target.value })}
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setProdutoManualOpen(false)} className="flex-1">
+                Cancelar
+              </Button>
+              <Button onClick={adicionarProdutoManual} className="flex-1">
+                Adicionar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Editar Preço */}
+      <Dialog open={editandoPreco !== null} onOpenChange={(open) => !open && setEditandoPreco(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Alterar Preço do Item</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Novo Preço Unitário (R$)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={editandoPreco?.preco || ""}
+                onChange={(e) => editandoPreco && setEditandoPreco({ ...editandoPreco, preco: e.target.value })}
+                placeholder="0.00"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setEditandoPreco(null)} className="flex-1">
+                Cancelar
+              </Button>
+              <Button onClick={salvarPreco} className="flex-1">
+                Salvar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <CupomFiscal
         vendaId={cupomVendaId}

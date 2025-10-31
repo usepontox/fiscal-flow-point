@@ -5,11 +5,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { User, Lock, Save, Building } from "lucide-react";
+import { User, Lock, Save, Building, Palette, Printer } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useTheme } from "@/hooks/use-theme";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import InputMask from "react-input-mask";
+import { masks } from "@/lib/masks";
 
 export default function Configuracoes() {
   const { toast } = useToast();
+  const { theme, setTheme } = useTheme();
   const [loading, setLoading] = useState(false);
   const [profile, setProfile] = useState({
     nome: "",
@@ -196,6 +201,14 @@ export default function Configuracoes() {
             <Building className="h-4 w-4 mr-2" />
             Empresa
           </TabsTrigger>
+          <TabsTrigger value="aparencia">
+            <Palette className="h-4 w-4 mr-2" />
+            Aparência
+          </TabsTrigger>
+          <TabsTrigger value="equipamentos">
+            <Printer className="h-4 w-4 mr-2" />
+            Equipamentos
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="perfil">
@@ -320,19 +333,23 @@ export default function Configuracoes() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="cnpj">CNPJ</Label>
-                    <Input
-                      id="cnpj"
+                    <InputMask
+                      mask={masks.cnpj}
                       value={empresa.cnpj}
                       onChange={(e) => setEmpresa({ ...empresa, cnpj: e.target.value })}
-                    />
+                    >
+                      {(inputProps: any) => <Input {...inputProps} id="cnpj" />}
+                    </InputMask>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="telefone_empresa">Telefone</Label>
-                    <Input
-                      id="telefone_empresa"
+                    <InputMask
+                      mask={masks.telefone}
                       value={empresa.telefone}
                       onChange={(e) => setEmpresa({ ...empresa, telefone: e.target.value })}
-                    />
+                    >
+                      {(inputProps: any) => <Input {...inputProps} id="telefone_empresa" />}
+                    </InputMask>
                   </div>
                   <div className="space-y-2 col-span-2">
                     <Label htmlFor="email_empresa">E-mail</Label>
@@ -370,11 +387,13 @@ export default function Configuracoes() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="cep_empresa">CEP</Label>
-                    <Input
-                      id="cep_empresa"
+                    <InputMask
+                      mask={masks.cep}
                       value={empresa.cep}
                       onChange={(e) => setEmpresa({ ...empresa, cep: e.target.value })}
-                    />
+                    >
+                      {(inputProps: any) => <Input {...inputProps} id="cep_empresa" />}
+                    </InputMask>
                   </div>
                 </div>
                 <Button type="submit" disabled={loading}>
@@ -382,6 +401,74 @@ export default function Configuracoes() {
                   {loading ? "Salvando..." : "Salvar Dados da Empresa"}
                 </Button>
               </form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="aparencia">
+          <Card>
+            <CardHeader>
+              <CardTitle>Tema do Sistema</CardTitle>
+              <CardDescription>
+                Escolha entre tema claro ou escuro
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Tema Atual</Label>
+                <Select value={theme} onValueChange={(value: "light" | "dark") => setTheme(value)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="light">☀️ Claro</SelectItem>
+                    <SelectItem value="dark">🌙 Escuro</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Sua escolha será salva automaticamente
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="equipamentos">
+          <Card>
+            <CardHeader>
+              <CardTitle>Configuração de Impressoras</CardTitle>
+              <CardDescription>
+                Configure as impressoras do sistema
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="impressora_padrao">Impressora Padrão</Label>
+                <Select defaultValue="nenhuma">
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione uma impressora" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="nenhuma">Nenhuma configurada</SelectItem>
+                    <SelectItem value="termica1">Impressora Térmica 1</SelectItem>
+                    <SelectItem value="termica2">Impressora Térmica 2</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Configuração de impressoras em desenvolvimento
+                </p>
+              </div>
+
+              <div className="pt-4 border-t">
+                <h4 className="font-medium mb-2">Impressoras Configuradas</h4>
+                <p className="text-sm text-muted-foreground">
+                  Nenhuma impressora configurada no momento.
+                </p>
+                <Button variant="outline" className="mt-4" disabled>
+                  <Printer className="mr-2 h-4 w-4" />
+                  Adicionar Impressora
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

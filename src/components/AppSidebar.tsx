@@ -33,7 +33,7 @@ const menuItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "PDV / Caixa", url: "/pdv", icon: ShoppingCart },
   { title: "Vendas", url: "/vendas", icon: Receipt },
-  { title: "Produtos", url: "/produtos", icon: Package },
+  { title: "Estoque", url: "/produtos", icon: Package },
   { title: "Compras", url: "/compras", icon: ShoppingBag },
   { title: "Clientes", url: "/clientes", icon: Users },
   { title: "Fornecedores", url: "/fornecedores", icon: Truck },
