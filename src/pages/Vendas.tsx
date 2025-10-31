@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Receipt, X, Filter } from "lucide-react";
+import { Search, Receipt, X, Filter, Plus } from "lucide-react";
 import CupomFiscal from "@/components/CupomFiscal";
 import {
   AlertDialog,
@@ -35,6 +36,8 @@ interface Venda {
 
 export default function Vendas() {
   const { toast } = useToast();
+  const navigate = useNavigate();
+
   const [vendas, setVendas] = useState<Venda[]>([]);
   const [busca, setBusca] = useState("");
   const [cupomVendaId, setCupomVendaId] = useState<string | null>(null);
@@ -154,9 +157,18 @@ export default function Vendas() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Vendas</h1>
-        <p className="text-muted-foreground">Histórico completo de vendas</p>
+      {/* Cabeçalho com botão Nova Venda */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Vendas</h1>
+          <p className="text-muted-foreground">Histórico completo de vendas</p>
+        </div>
+        <div className="flex gap-2">
+          <Button onClick={() => navigate("/pdv")}>
+            <Plus className="mr-2 h-4 w-4" />
+            Nova Venda
+          </Button>
+        </div>
       </div>
 
       <Card>

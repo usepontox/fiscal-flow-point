@@ -61,11 +61,11 @@ export default function PDV() {
   const [vendasRecentes, setVendasRecentes] = useState<VendaRecente[]>([]);
   const [cupomVendaId, setCupomVendaId] = useState<string | null>(null);
   const [cupomOpen, setCupomOpen] = useState(false);
-  
+
   // Produto manual
   const [produtoManualOpen, setProdutoManualOpen] = useState(false);
   const [produtoManual, setProdutoManual] = useState({ nome: "", preco: "", quantidade: "1" });
-  
+
   // Editar preço
   const [editandoPreco, setEditandoPreco] = useState<{ id: string; preco: string } | null>(null);
 
@@ -118,11 +118,11 @@ export default function PDV() {
     if (itemExistente) {
       setCarrinho(carrinho.map(item =>
         item.produto.id === produto.id
-          ? { 
-              ...item, 
-              quantidade: item.quantidade + 1, 
-              subtotal: (item.quantidade + 1) * item.preco_unitario 
-            }
+          ? {
+            ...item,
+            quantidade: item.quantidade + 1,
+            subtotal: (item.quantidade + 1) * item.preco_unitario
+          }
           : item
       ));
     } else {
@@ -201,11 +201,11 @@ export default function PDV() {
 
     setCarrinho(carrinho.map(item =>
       item.produto.id === editandoPreco.id
-        ? { 
-            ...item, 
-            preco_unitario: novoPreco, 
-            subtotal: item.quantidade * novoPreco 
-          }
+        ? {
+          ...item,
+          preco_unitario: novoPreco,
+          subtotal: item.quantidade * novoPreco
+        }
         : item
     ));
 
@@ -407,10 +407,10 @@ export default function PDV() {
             {clienteId !== "anonimo" && (
               <div>
                 <Label className="text-xs">CPF/CNPJ do Cliente</Label>
-                <Input 
+                <Input
                   value={
-                    clientes.find(c => c.id === clienteId)?.cpf || 
-                    clientes.find(c => c.id === clienteId)?.cnpj || 
+                    clientes.find(c => c.id === clienteId)?.cpf ||
+                    clientes.find(c => c.id === clienteId)?.cnpj ||
                     ""
                   }
                   disabled
@@ -418,7 +418,7 @@ export default function PDV() {
                 />
               </div>
             )}
-            
+
             {/* CPF na Nota (quando anônimo) */}
             {clienteId === "anonimo" && (
               <div>
@@ -620,7 +620,15 @@ export default function PDV() {
                     <Badge variant="outline">{venda.forma_pagamento.toUpperCase()}</Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={venda.status === "finalizada" ? "default" : "secondary"}>
+                    <Badge
+                      variant={
+                        venda.status === "finalizada"
+                          ? "default"
+                          : venda.status === "cancelada"
+                            ? "destructive"
+                            : "secondary"
+                      }
+                    >
                       {venda.status}
                     </Badge>
                   </TableCell>
