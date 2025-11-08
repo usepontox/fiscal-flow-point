@@ -667,7 +667,24 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      configuracoes_empresa_publico: {
+        Row: {
+          id: string | null
+          logo_url: string | null
+          nome_empresa: string | null
+        }
+        Insert: {
+          id?: string | null
+          logo_url?: string | null
+          nome_empresa?: string | null
+        }
+        Update: {
+          id?: string | null
+          logo_url?: string | null
+          nome_empresa?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       has_any_role: {
