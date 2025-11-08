@@ -15,9 +15,11 @@ import {
 import { useNavigate } from "react-router-dom";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { useEmpresa } from "@/hooks/use-empresa";
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { empresaId } = useEmpresa();
   const [stats, setStats] = useState({
     vendasHoje: 0,
     faturamentoHoje: 0,
@@ -32,8 +34,10 @@ export default function Dashboard() {
   const [graficoVendas, setGraficoVendas] = useState<any[]>([]);
 
   useEffect(() => {
-    loadDashboardData();
-  }, []);
+    if (empresaId) {
+      loadDashboardData();
+    }
+  }, [empresaId]);
 
   const loadDashboardData = async () => {
     const hoje = new Date().toISOString().split('T')[0];
@@ -43,6 +47,7 @@ export default function Dashboard() {
     const { data: vendas } = await supabase
       .from("vendas")
       .select("total")
+      .eq("empresa_id", empresaId!)
       .eq("status", "finalizada")
       .gte("data_venda", `${hoje}T00:00:00`)
       .lte("data_venda", `${hoje}T23:59:59`);
@@ -54,6 +59,7 @@ export default function Dashboard() {
     const { data: vendasMes } = await supabase
       .from("vendas")
       .select("total")
+      .eq("empresa_id", empresaId!)
       .eq("status", "finalizada")
       .gte("data_venda", `${inicioMes}T00:00:00`);
 
@@ -63,6 +69,7 @@ export default function Dashboard() {
     const { data: produtos } = await supabase
       .from("produtos")
       .select("estoque_atual, estoque_minimo")
+      .eq("empresa_id", empresaId!)
       .eq("ativo", true);
 
     const produtosEstoque = produtos?.length || 0;
@@ -71,11 +78,13 @@ export default function Dashboard() {
     // Clientes e Fornecedores
     const { count: totalClientes } = await supabase
       .from("clientes")
-      .select("*", { count: "exact", head: true });
+      .select("*", { count: "exact", head: true })
+      .eq("empresa_id", empresaId!);
 
     const { count: totalFornecedores } = await supabase
       .from("fornecedores")
-      .select("*", { count: "exact", head: true });
+      .select("*", { count: "exact", head: true })
+      .eq("empresa_id", empresaId!);
 
     // Top 5 produtos mais vendidos
     const { data: itensVendas } = await supabase
@@ -109,6 +118,7 @@ export default function Dashboard() {
         *,
         clientes:cliente_id (nome)
       `)
+      .eq("empresa_id", empresaId!)
       .order("data_venda", { ascending: false })
       .limit(5);
 
@@ -129,6 +139,7 @@ export default function Dashboard() {
     const { data: vendasGrafico } = await supabase
       .from("vendas")
       .select("data_venda, total")
+      .eq("empresa_id", empresaId!)
       .eq("status", "finalizada")
       .gte("data_venda", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
       .order("data_venda");

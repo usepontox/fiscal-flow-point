@@ -9,9 +9,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { FileText, Download, Calendar } from "lucide-react";
 import * as XLSX from "xlsx";
+import { useEmpresa } from "@/hooks/use-empresa";
 
 export default function Relatorios() {
   const { toast } = useToast();
+  const { empresaId } = useEmpresa();
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
   const [relatorioVendas, setRelatorioVendas] = useState<any[]>([]);
@@ -35,12 +37,18 @@ export default function Relatorios() {
     setLoading(true);
 
     try {
+      if (!empresaId) {
+        toast({ title: "Erro", description: "Empresa não identificada", variant: "destructive" });
+        return;
+      }
+
       const { data, error } = await supabase
         .from("vendas")
         .select(`
           *,
           clientes:cliente_id (nome)
         `)
+        .eq("empresa_id", empresaId)
         .gte("data_venda", `${dataInicio}T00:00:00`)
         .lte("data_venda", `${dataFim}T23:59:59`)
         .order("data_venda", { ascending: false });
@@ -114,9 +122,15 @@ export default function Relatorios() {
     setLoading(true);
 
     try {
+      if (!empresaId) {
+        toast({ title: "Erro", description: "Empresa não identificada", variant: "destructive" });
+        return;
+      }
+
       const { data, error } = await supabase
         .from("produtos")
         .select("nome, estoque_atual, estoque_minimo, preco_venda, custo")
+        .eq("empresa_id", empresaId)
         .eq("ativo", true)
         .order("estoque_atual");
 
