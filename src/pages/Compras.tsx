@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Plus, Minus, Trash2, Package, Search, FileText, Upload } from "lucide-react";
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import xml2js from "xml2js";
+import { z } from "zod";
 
 interface Produto {
   id: string;
@@ -70,6 +71,19 @@ export default function Compras() {
     if (data) setFornecedores(data);
   };
 
+  // Validation schema for NFe XML product data
+  const nfeProductSchema = z.object({
+    xProd: z.string().trim().min(1, "Nome do produto não pode estar vazio").max(200, "Nome do produto muito longo (máx 200 caracteres)"),
+    qCom: z.string().refine((val) => {
+      const num = parseFloat(val);
+      return !isNaN(num) && num > 0 && num <= 100000;
+    }, "Quantidade inválida (deve ser > 0 e ≤ 100000)"),
+    vUnCom: z.string().refine((val) => {
+      const num = parseFloat(val);
+      return !isNaN(num) && num >= 0 && num <= 1000000;
+    }, "Preço unitário inválido (deve ser ≥ 0 e ≤ 1000000)")
+  });
+
   const handleImportarXML = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -87,18 +101,33 @@ export default function Compras() {
         return;
       }
 
-      // Extrair número da nota
-      setNumeroNota(nfe.ide?.nNF || "");
+      // Extrair e validar número da nota
+      const numeroNotaRaw = nfe.ide?.nNF || "";
+      if (!numeroNotaRaw) {
+        toast({ title: "XML inválido", description: "Número da nota não encontrado", variant: "destructive" });
+        return;
+      }
+      setNumeroNota(String(numeroNotaRaw).slice(0, 50)); // Limit length
 
       // Processar itens da nota
       const itensNF = Array.isArray(nfe.det) ? nfe.det : [nfe.det];
       const itensImportados: ItemCompra[] = [];
+      const errosValidacao: string[] = [];
 
-      for (const item of itensNF) {
+      for (const [index, item] of itensNF.entries()) {
         const prod = item.prod;
-        const nomeProduto = prod.xProd;
-        const quantidade = parseFloat(prod.qCom);
-        const precoUnitario = parseFloat(prod.vUnCom);
+        
+        // Validate product data
+        const validation = nfeProductSchema.safeParse(prod);
+        if (!validation.success) {
+          const erro = validation.error.errors[0];
+          errosValidacao.push(`Item ${index + 1}: ${erro.message}`);
+          continue; // Skip invalid items
+        }
+
+        const nomeProduto = validation.data.xProd.trim();
+        const quantidade = parseFloat(validation.data.qCom);
+        const precoUnitario = parseFloat(validation.data.vUnCom);
 
         // Buscar produto existente ou criar placeholder
         const produtoExistente = produtos.find(p => 
@@ -119,18 +148,38 @@ export default function Compras() {
         });
       }
 
+      if (itensImportados.length === 0) {
+        toast({ 
+          title: "Nenhum item válido", 
+          description: errosValidacao.length > 0 ? errosValidacao[0] : "Nenhum produto encontrado no XML",
+          variant: "destructive" 
+        });
+        return;
+      }
+
       setItens(itensImportados);
-      toast({ 
-        title: "XML importado com sucesso!", 
-        description: `${itensImportados.length} itens carregados`
-      });
+      
+      // Show success with validation warnings if any
+      if (errosValidacao.length > 0) {
+        toast({ 
+          title: "XML importado com avisos", 
+          description: `${itensImportados.length} itens carregados, ${errosValidacao.length} itens com erros foram ignorados`,
+          variant: "default"
+        });
+      } else {
+        toast({ 
+          title: "XML importado com sucesso!", 
+          description: `${itensImportados.length} itens carregados`
+        });
+      }
       
     } catch (error: any) {
       toast({ 
         title: "Erro ao processar XML", 
-        description: error.message, 
+        description: "Não foi possível processar o arquivo XML. Verifique se o formato está correto.", 
         variant: "destructive" 
       });
+      console.error("XML import error:", error);
     }
 
     e.target.value = '';
