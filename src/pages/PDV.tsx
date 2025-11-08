@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Plus, Minus, Trash2, ShoppingCart, Receipt, Clock, Edit2, DollarSign } from "lucide-react";
+import { Search, Plus, Minus, Trash2, ShoppingCart, Receipt, Clock, Edit2, DollarSign, Package } from "lucide-react";
 import CupomFiscal from "@/components/CupomFiscal";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import InputMask from "react-input-mask";
@@ -329,54 +329,84 @@ export default function PDV() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">PDV / Caixa</h1>
-        <p className="text-muted-foreground">Sistema de Ponto de Venda</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-gradient-primary flex items-center justify-center">
+              <ShoppingCart className="h-6 w-6 text-white" />
+            </div>
+            PDV / Caixa
+          </h1>
+          <p className="text-muted-foreground mt-1">Sistema de Ponto de Venda Rápido e Intuitivo</p>
+        </div>
+        <Badge variant="outline" className="text-base px-4 py-2">
+          <Clock className="h-4 w-4 mr-2" />
+          {new Date().toLocaleDateString("pt-BR")}
+        </Badge>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
+      <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
         {/* Produtos */}
-        <Card>
-          <CardHeader className="pb-3">
+        <Card className="shadow-lg border-primary/10">
+          <CardHeader className="pb-4 bg-gradient-to-r from-primary/5 to-transparent">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">Produtos</CardTitle>
-              <Button size="sm" variant="outline" onClick={() => setProdutoManualOpen(true)}>
+              <CardTitle className="text-xl flex items-center gap-2">
+                <Package className="h-5 w-5 text-primary" />
+                Catálogo de Produtos
+              </CardTitle>
+              <Button size="sm" onClick={() => setProdutoManualOpen(true)} className="shadow-sm">
                 <Plus className="h-4 w-4 mr-2" />
                 Produto Manual
               </Button>
             </div>
-            <div className="relative mt-2">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <div className="relative mt-3">
+              <Search className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
               <Input
-                placeholder="Buscar produto..."
+                placeholder="Buscar por nome, código de barras ou SKU..."
                 value={busca}
                 onChange={(e) => setBusca(e.target.value)}
-                className="pl-9"
+                className="pl-10 h-11 border-primary/20 focus:border-primary"
               />
             </div>
           </CardHeader>
           <CardContent className="pt-0">
-            <div className="max-h-[calc(100vh-280px)] overflow-auto space-y-2">
+            <div className="max-h-[calc(100vh-280px)] overflow-auto space-y-2 pr-2">
               {produtosFiltrados.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">
-                  Nenhum produto encontrado
-                </p>
+                <div className="text-center py-12">
+                  <Package className="h-12 w-12 text-muted-foreground mx-auto mb-3 opacity-50" />
+                  <p className="text-muted-foreground font-medium">
+                    Nenhum produto encontrado
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Tente buscar com outros termos
+                  </p>
+                </div>
               ) : (
                 produtosFiltrados.map(produto => (
                   <div
                     key={produto.id}
-                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent cursor-pointer transition-colors"
+                    className="group flex items-center justify-between p-4 border rounded-xl hover:bg-primary/5 hover:border-primary/30 cursor-pointer transition-all duration-200 hover:shadow-md"
                     onClick={() => adicionarProduto(produto)}
                   >
                     <div className="flex-1">
-                      <p className="font-medium">{produto.nome}</p>
-                      <p className="text-xs text-muted-foreground">
-                        Estoque: {produto.estoque_atual} unidades
-                      </p>
+                      <p className="font-semibold text-base group-hover:text-primary transition-colors">{produto.nome}</p>
+                      <div className="flex items-center gap-3 mt-1">
+                        <Badge variant="outline" className="text-xs">
+                          Estoque: {produto.estoque_atual}
+                        </Badge>
+                        {produto.estoque_atual < 10 && (
+                          <Badge variant="destructive" className="text-xs">
+                            Baixo
+                          </Badge>
+                        )}
+                      </div>
                     </div>
-                    <p className="font-bold text-lg text-success ml-4">
-                      {formatCurrency(produto.preco_venda)}
-                    </p>
+                    <div className="text-right ml-4">
+                      <p className="font-bold text-xl text-success">
+                        {formatCurrency(produto.preco_venda)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">Clique para adicionar</p>
+                    </div>
                   </div>
                 ))
               )}
@@ -385,11 +415,13 @@ export default function PDV() {
         </Card>
 
         {/* Carrinho */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <ShoppingCart className="h-5 w-5" />
-              Carrinho
+        <Card className="shadow-lg border-primary/10">
+          <CardHeader className="pb-4 bg-gradient-to-r from-success/5 to-transparent">
+            <CardTitle className="flex items-center gap-2 text-xl">
+              <div className="h-8 w-8 rounded-lg bg-success/20 flex items-center justify-center">
+                <ShoppingCart className="h-5 w-5 text-success" />
+              </div>
+              Carrinho ({carrinho.length})
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 pt-0">
@@ -444,11 +476,13 @@ export default function PDV() {
             )}
 
             {/* Itens do Carrinho */}
-            <div className="border rounded-lg">
+            <div className="border rounded-xl border-primary/10">
               <div className="max-h-[calc(100vh-600px)] min-h-[150px] overflow-auto">
                 {carrinho.length === 0 ? (
-                  <div className="flex items-center justify-center h-[150px] text-muted-foreground text-sm">
-                    Carrinho vazio
+                  <div className="flex flex-col items-center justify-center h-[150px] text-muted-foreground">
+                    <ShoppingCart className="h-12 w-12 mb-2 opacity-30" />
+                    <p className="text-sm font-medium">Carrinho vazio</p>
+                    <p className="text-xs">Adicione produtos para iniciar</p>
                   </div>
                 ) : (
                   <Table>
@@ -562,11 +596,14 @@ export default function PDV() {
             </div>
 
             {/* Pagamento e Total */}
-            <div className="space-y-3 pt-3 border-t">
+            <div className="space-y-4 pt-4 border-t border-primary/10">
               <div>
-                <Label className="text-xs">Forma de Pagamento</Label>
+                <Label className="text-sm font-semibold flex items-center gap-2">
+                  <DollarSign className="h-4 w-4" />
+                  Forma de Pagamento
+                </Label>
                 <Select value={formaPagamento} onValueChange={setFormaPagamento}>
-                  <SelectTrigger className="mt-1">
+                  <SelectTrigger className="mt-2 h-11 border-primary/20">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -579,17 +616,29 @@ export default function PDV() {
                 </Select>
               </div>
 
-              <div className="flex items-center justify-between text-2xl font-bold py-2">
-                <span>Total:</span>
-                <span className="text-success">{formatCurrency(calcularTotal())}</span>
+              <div className="bg-gradient-primary rounded-xl p-4 text-white shadow-lg">
+                <div className="flex items-center justify-between">
+                  <span className="text-lg font-medium">Total da Venda</span>
+                  <span className="text-3xl font-bold">{formatCurrency(calcularTotal())}</span>
+                </div>
               </div>
 
               <Button
-                className="w-full h-12 text-base font-semibold"
+                className="w-full h-14 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
                 onClick={finalizarVenda}
                 disabled={loading || carrinho.length === 0}
               >
-                {loading ? "Processando..." : "Finalizar Venda"}
+                {loading ? (
+                  <>
+                    <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full mr-2" />
+                    Processando...
+                  </>
+                ) : (
+                  <>
+                    <Receipt className="mr-2 h-5 w-5" />
+                    Finalizar Venda
+                  </>
+                )}
               </Button>
             </div>
           </CardContent>
@@ -597,10 +646,12 @@ export default function PDV() {
       </div>
 
       {/* Vendas Recentes */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
+      <Card className="shadow-lg border-primary/10">
+        <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent">
+          <CardTitle className="flex items-center gap-2 text-xl">
+            <div className="h-8 w-8 rounded-lg bg-primary/20 flex items-center justify-center">
+              <Clock className="h-5 w-5 text-primary" />
+            </div>
             Vendas Recentes
           </CardTitle>
         </CardHeader>

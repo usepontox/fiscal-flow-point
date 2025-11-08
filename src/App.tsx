@@ -7,6 +7,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 
+import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import PDV from "./pages/PDV";
@@ -32,13 +33,13 @@ const App = () => (
       <Calculadora />
       <BrowserRouter>
         <Routes>
+          <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/admin-global" element={
             <ProtectedRoute>
               <AdminGlobal />
             </ProtectedRoute>
           } />
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
           
           <Route
             path="/*"
