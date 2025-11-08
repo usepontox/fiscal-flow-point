@@ -32,6 +32,7 @@ interface ProdutoFormProps {
 
 export default function ProdutoForm({ open, onOpenChange, onSuccess, produtoEditando }: ProdutoFormProps) {
   const { toast } = useToast();
+  const { empresaId } = useEmpresa();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     nome: produtoEditando?.nome || "",
@@ -85,6 +86,11 @@ export default function ProdutoForm({ open, onOpenChange, onSuccess, produtoEdit
     setLoading(true);
 
     try {
+      if (!empresaId) {
+        toast({ title: "Erro", description: "Empresa não identificada", variant: "destructive" });
+        return;
+      }
+
       const dados = {
         nome: formData.nome,
         descricao: formData.descricao || null,
@@ -96,7 +102,8 @@ export default function ProdutoForm({ open, onOpenChange, onSuccess, produtoEdit
         preco_venda: parseFloat(formData.preco_venda) || 0,
         estoque_atual: parseInt(formData.estoque_atual) || 0,
         estoque_minimo: parseInt(formData.estoque_minimo) || 0,
-        ativo: formData.ativo
+        ativo: formData.ativo,
+        empresa_id: empresaId,
       };
 
       let error;
@@ -110,7 +117,7 @@ export default function ProdutoForm({ open, onOpenChange, onSuccess, produtoEdit
       } else {
         const result = await supabase
           .from("produtos")
-          .insert(dados);
+          .insert([dados]);
         error = result.error;
       }
 

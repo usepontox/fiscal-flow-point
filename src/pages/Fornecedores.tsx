@@ -12,6 +12,7 @@ import InputMask from "react-input-mask";
 import { masks } from "@/lib/masks";
 import ImportExportButtons from "@/components/ImportExportButtons";
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { useEmpresa } from "@/hooks/use-empresa";
 
 interface Fornecedor {
   id: string;
@@ -32,6 +33,7 @@ export default function Fornecedores() {
   const [dialogAberto, setDialogAberto] = useState(false);
   const [fornecedorEditando, setFornecedorEditando] = useState<Fornecedor | null>(null);
   const { toast } = useToast();
+  const { empresaId } = useEmpresa();
 
   const [formData, setFormData] = useState({
     nome: "",
@@ -73,6 +75,11 @@ export default function Fornecedores() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!empresaId) {
+      toast({ title: "Erro", description: "Empresa não identificada", variant: "destructive" });
+      return;
+    }
+
     if (fornecedorEditando) {
       const { error } = await supabase
         .from("fornecedores")
@@ -87,7 +94,7 @@ export default function Fornecedores() {
         fecharDialog();
       }
     } else {
-      const { error } = await supabase.from("fornecedores").insert([formData]);
+      const { error } = await supabase.from("fornecedores").insert([{ ...formData, empresa_id: empresaId }]);
 
       if (error) {
         toast({ title: "Erro ao criar fornecedor", description: error.message, variant: "destructive" });
@@ -155,7 +162,12 @@ export default function Fornecedores() {
           <ImportExportButtons
             data={fornecedores}
             onImport={async (newItems) => {
-              const { error } = await supabase.from("fornecedores").insert(newItems);
+              if (!empresaId) {
+                toast({ title: "Erro", description: "Empresa não identificada", variant: "destructive" });
+                return;
+              }
+              const itemsComEmpresa = newItems.map(item => ({ ...item, empresa_id: empresaId }));
+              const { error } = await supabase.from("fornecedores").insert(itemsComEmpresa);
               if (error) throw error;
               await carregarFornecedores();
             }}

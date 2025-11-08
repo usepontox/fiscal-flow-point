@@ -13,6 +13,7 @@ import { Plus, Minus, Trash2, Package, Search, FileText, Upload } from "lucide-r
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import xml2js from "xml2js";
 import { z } from "zod";
+import { useEmpresa } from "@/hooks/use-empresa";
 
 interface Produto {
   id: string;
@@ -34,6 +35,7 @@ interface ItemCompra {
 
 export default function Compras() {
   const { toast } = useToast();
+  const { empresaId } = useEmpresa();
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -289,17 +291,23 @@ export default function Compras() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
+      if (!empresaId) {
+        toast({ title: "Erro", description: "Empresa não identificada", variant: "destructive" });
+        return;
+      }
+
       const total = calcularTotal();
 
       // Criar compra
       const { data: compra, error: compraError } = await supabase
         .from("compras")
-        .insert({
+        .insert([{
           fornecedor_id: fornecedorId || null,
           numero_nota: numeroNota,
           valor_total: total,
           usuario_id: user.id,
-        })
+          empresa_id: empresaId,
+        }])
         .select()
         .single();
 

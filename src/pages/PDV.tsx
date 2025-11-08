@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import InputMask from "react-input-mask";
 import { masks } from "@/lib/masks";
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { useEmpresa } from "@/hooks/use-empresa";
 
 interface Produto {
   id: string;
@@ -50,6 +51,7 @@ interface Cliente {
 
 export default function PDV() {
   const { toast } = useToast();
+  const { empresaId } = useEmpresa();
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [busca, setBusca] = useState("");
@@ -233,12 +235,17 @@ export default function PDV() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
+      if (!empresaId) {
+        toast({ title: "Erro", description: "Empresa não identificada", variant: "destructive" });
+        return;
+      }
+
       const total = calcularTotal();
 
       // Criar venda
       const { data: venda, error: vendaError } = await supabase
         .from("vendas")
-        .insert({
+        .insert([{
           operador_id: user.id,
           cliente_id: clienteId === "anonimo" ? null : clienteId,
           numero_venda: `VENDA-${Date.now()}`,
@@ -247,7 +254,8 @@ export default function PDV() {
           total,
           forma_pagamento: formaPagamento,
           status: "finalizada",
-        })
+          empresa_id: empresaId,
+        }])
         .select()
         .single();
 

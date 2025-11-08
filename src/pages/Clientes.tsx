@@ -12,6 +12,7 @@ import InputMask from "react-input-mask";
 import { masks } from "@/lib/masks";
 import ImportExportButtons from "@/components/ImportExportButtons";
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { useEmpresa } from "@/hooks/use-empresa";
 
 interface Cliente {
   id: string;
@@ -33,6 +34,7 @@ export default function Clientes() {
   const [dialogAberto, setDialogAberto] = useState(false);
   const [clienteEditando, setClienteEditando] = useState<Cliente | null>(null);
   const { toast } = useToast();
+  const { empresaId } = useEmpresa();
 
   const [formData, setFormData] = useState({
     nome: "",
@@ -75,6 +77,11 @@ export default function Clientes() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!empresaId) {
+      toast({ title: "Erro", description: "Empresa não identificada", variant: "destructive" });
+      return;
+    }
+
     if (clienteEditando) {
       const { error } = await supabase
         .from("clientes")
@@ -89,7 +96,7 @@ export default function Clientes() {
         fecharDialog();
       }
     } else {
-      const { error } = await supabase.from("clientes").insert([formData]);
+      const { error } = await supabase.from("clientes").insert([{ ...formData, empresa_id: empresaId }]);
 
       if (error) {
         toast({ title: "Erro ao criar cliente", description: error.message, variant: "destructive" });
@@ -163,7 +170,12 @@ export default function Clientes() {
           <ImportExportButtons
             data={clientes}
             onImport={async (newItems) => {
-              const { error } = await supabase.from("clientes").insert(newItems);
+              if (!empresaId) {
+                toast({ title: "Erro", description: "Empresa não identificada", variant: "destructive" });
+                return;
+              }
+              const itemsComEmpresa = newItems.map(item => ({ ...item, empresa_id: empresaId }));
+              const { error } = await supabase.from("clientes").insert(itemsComEmpresa);
               if (error) throw error;
               await carregarClientes();
             }}

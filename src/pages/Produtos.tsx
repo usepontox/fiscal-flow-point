@@ -11,6 +11,7 @@ import ProdutoForm from "@/components/ProdutoForm";
 import { useToast } from "@/hooks/use-toast";
 import * as XLSX from "xlsx";
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { useEmpresa } from "@/hooks/use-empresa";
 
 export default function Produtos() {
   const [produtos, setProdutos] = useState<any[]>([]);
@@ -18,6 +19,7 @@ export default function Produtos() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [produtoEditando, setProdutoEditando] = useState<any>(null);
   const { toast } = useToast();
+  const { empresaId } = useEmpresa();
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [dadosImportacao, setDadosImportacao] = useState<any[]>([]);
 
@@ -123,6 +125,11 @@ export default function Produtos() {
 
   const confirmarImportacao = async () => {
     try {
+      if (!empresaId) {
+        toast({ title: "Erro", description: "Empresa não identificada", variant: "destructive" });
+        return;
+      }
+
       const produtosParaInserir = dadosImportacao.map(item => ({
         nome: item.nome,
         preco_venda: parseFloat(item.preco_venda) || 0,
@@ -133,6 +140,7 @@ export default function Produtos() {
         codigo_barras: item.codigo_barras || null,
         sku: item.sku || null,
         ativo: true,
+        empresa_id: empresaId,
       }));
 
       const { error } = await supabase

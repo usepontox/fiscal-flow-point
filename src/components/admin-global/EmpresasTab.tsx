@@ -197,7 +197,7 @@ export function EmpresasTab() {
                       value={formData.cnpj}
                       onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
                     >
-                      <Input id="cnpj" placeholder="00.000.000/0000-00" />
+                      {(inputProps: any) => <Input {...inputProps} id="cnpj" placeholder="00.000.000/0000-00" />}
                     </InputMask>
                   </div>
                 </div>
@@ -210,7 +210,7 @@ export function EmpresasTab() {
                       value={formData.telefone}
                       onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
                     >
-                      <Input id="telefone" placeholder="(00) 00000-0000" />
+                      {(inputProps: any) => <Input {...inputProps} id="telefone" placeholder="(00) 00000-0000" />}
                     </InputMask>
                   </div>
                   <div>
@@ -262,7 +262,7 @@ export function EmpresasTab() {
                       value={formData.cep}
                       onChange={(e) => setFormData({ ...formData, cep: e.target.value })}
                     >
-                      <Input id="cep" placeholder="00000-000" />
+                      {(inputProps: any) => <Input {...inputProps} id="cep" placeholder="00000-000" />}
                     </InputMask>
                   </div>
                 </div>

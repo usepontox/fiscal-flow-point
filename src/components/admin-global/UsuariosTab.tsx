@@ -62,7 +62,7 @@ export function UsuariosTab() {
         id,
         email,
         nome,
-        user_roles!inner(role),
+        user_roles(role),
         usuarios_empresas(
           empresa_id,
           empresas(nome)
@@ -74,7 +74,7 @@ export function UsuariosTab() {
       return;
     }
 
-    setUsuarios(data || []);
+    setUsuarios(data as any || []);
   };
 
   const loadEmpresas = async () => {
