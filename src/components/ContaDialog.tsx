@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useEmpresa } from "@/hooks/use-empresa";
 import InputMask from "react-input-mask";
 
 interface ContaDialogProps {
@@ -19,6 +20,7 @@ interface ContaDialogProps {
 
 export default function ContaDialog({ open, onOpenChange, onSuccess, tipo, conta }: ContaDialogProps) {
   const { toast } = useToast();
+  const { empresaId } = useEmpresa();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     descricao: "",
@@ -57,6 +59,11 @@ export default function ContaDialog({ open, onOpenChange, onSuccess, tipo, conta
 
     try {
       const tabela = tipo === "receber" ? "contas_receber" : "contas_pagar";
+      if (!empresaId) {
+        toast({ title: "Erro", description: "Empresa não identificada", variant: "destructive" });
+        return;
+      }
+
       const dados = {
         descricao: formData.descricao,
         valor: parseFloat(formData.valor),
@@ -64,6 +71,7 @@ export default function ContaDialog({ open, onOpenChange, onSuccess, tipo, conta
         categoria: formData.categoria || null,
         observacoes: formData.observacoes || null,
         status: formData.status,
+        empresa_id: empresaId,
       };
 
       if (conta) {
