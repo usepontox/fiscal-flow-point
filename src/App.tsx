@@ -18,6 +18,7 @@ import Financeiro from "./pages/Financeiro";
 import Configuracoes from "./pages/Configuracoes";
 import Compras from "./pages/Compras";
 import Relatorios from "./pages/Relatorios";
+import AdminGlobal from "./pages/AdminGlobal";
 import NotFound from "./pages/NotFound";
 import { Calculadora } from "./components/Calculadora";
 
@@ -32,6 +33,11 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/auth" element={<Auth />} />
+          <Route path="/admin-global" element={
+            <ProtectedRoute>
+              <AdminGlobal />
+            </ProtectedRoute>
+          } />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           
           <Route

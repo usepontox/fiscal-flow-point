@@ -48,7 +48,7 @@ export default function Auth() {
         setSession(session);
         setUser(session?.user ?? null);
         if (session) {
-          navigate("/dashboard");
+          checkUserRoleAndRedirect(session.user.id);
         }
       }
     );
@@ -58,12 +58,27 @@ export default function Auth() {
       setSession(session);
       setUser(session?.user ?? null);
       if (session) {
-        navigate("/dashboard");
+        checkUserRoleAndRedirect(session.user.id);
       }
     });
 
     return () => subscription.unsubscribe();
   }, [navigate]);
+
+  const checkUserRoleAndRedirect = async (userId: string) => {
+    const { data: roles } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .eq("role", "super_admin")
+      .single();
+
+    if (roles) {
+      navigate("/admin-global");
+    } else {
+      navigate("/dashboard");
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
