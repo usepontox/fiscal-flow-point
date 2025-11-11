@@ -70,6 +70,11 @@ export default function AdminGlobal() {
     return null;
   }
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/auth");
+  };
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -82,9 +87,9 @@ export default function AdminGlobal() {
             Gerencie empresas e usuários do sistema
           </p>
         </div>
-        <Button variant="outline" onClick={() => navigate("/")}>
+        <Button variant="outline" onClick={handleLogout}>
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Voltar
+          Sair
         </Button>
       </div>
 
